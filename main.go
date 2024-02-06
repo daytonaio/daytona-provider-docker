@@ -1,13 +1,19 @@
 package main
 
 import (
-	docker_plugin "provisioner_plugin/plugin"
+	"github.com/daytonaio/daytona/plugin/provisioner"
+	provisioner_manager "github.com/daytonaio/daytona/plugin/provisioner/manager"
+	"github.com/hashicorp/go-plugin"
 
-	"github.com/daytonaio/daytona/plugin"
+	provisioner_plugin "provisioner_plugin/plugin"
 )
 
-func GetProvisionerPlugin(basePath string) plugin.ProvisionerPlugin {
-	return &docker_plugin.DockerProvisionerPlugin{
-		BasePath: basePath,
-	}
+func main() {
+	plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig: provisioner_manager.ProvisionerHandshakeConfig,
+		Plugins: map[string]plugin.Plugin{
+			"docker-provisioner": &provisioner.ProvisionerPlugin{Impl: &provisioner_plugin.DockerProvisioner{}},
+		},
+		GRPCServer: plugin.DefaultGRPCServer,
+	})
 }

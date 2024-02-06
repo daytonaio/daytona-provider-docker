@@ -8,58 +8,58 @@ import (
 
 	"provisioner_plugin/plugin/util"
 
-	"github.com/daytonaio/daytona/agent/workspace"
-
-	"github.com/docker/docker/api/types"
+	"github.com/daytonaio/daytona/grpc/proto/types"
+	"github.com/daytonaio/daytona/grpc/utils"
+	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 )
 
-type DockerProvisionerPlugin struct {
-	BasePath string
+type DockerProvisioner struct {
 }
 
-func (p DockerProvisionerPlugin) GetName() string {
-	return "docker"
+func (p DockerProvisioner) GetName() (string, error) {
+	return "docker", nil
 }
 
-func (p DockerProvisionerPlugin) GetVersion() string {
-	return "0.0.1"
+func (p DockerProvisioner) GetVersion() (string, error) {
+	return "0.0.1", nil
 }
 
-func (p DockerProvisionerPlugin) Configure() (interface{}, error) {
+func (p DockerProvisioner) Configure() (interface{}, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (p DockerProvisionerPlugin) SetConfig(config interface{}) error {
+func (p DockerProvisioner) SetConfig(config interface{}) error {
 	return errors.New("not implemented")
 }
 
-func (p DockerProvisionerPlugin) getProjectPath(project workspace.Project) string {
-	return path.Join(p.BasePath, "workspaces", project.Workspace.Name, "projects", project.Name)
+func (p DockerProvisioner) getProjectPath(project *types.Project) string {
+	// TODO: project path root config
+	return path.Join("/tmp", "workspaces", project.WorkspaceId, "projects", project.Name)
 }
 
-func (p DockerProvisionerPlugin) CreateWorkspace(workspace workspace.Workspace) error {
+func (p DockerProvisioner) CreateWorkspace(workspace *types.Workspace) error {
+	return util.CreateNetwork(workspace.Id)
+}
+
+func (p DockerProvisioner) StartWorkspace(workspace *types.Workspace) error {
 	return nil
 }
 
-func (p DockerProvisionerPlugin) StartWorkspace(workspace workspace.Workspace) error {
+func (p DockerProvisioner) StopWorkspace(workspace *types.Workspace) error {
 	return nil
 }
 
-func (p DockerProvisionerPlugin) StopWorkspace(workspace workspace.Workspace) error {
+func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) error {
 	return nil
 }
 
-func (p DockerProvisionerPlugin) DestroyWorkspace(workspace workspace.Workspace) error {
-	return nil
-}
-
-func (p DockerProvisionerPlugin) GetWorkspaceMetadata(workspace workspace.Workspace) (*interface{}, error) {
+func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (p DockerProvisionerPlugin) CreateProject(project workspace.Project) error {
+func (p DockerProvisioner) CreateProject(project *types.Project) error {
 	log.Info("Initializing project: ", project.Name)
 
 	clonePath := p.getProjectPath(project)
@@ -88,15 +88,15 @@ func (p DockerProvisionerPlugin) CreateProject(project workspace.Project) error 
 	return nil
 }
 
-func (p DockerProvisionerPlugin) StartProject(project workspace.Project) error {
+func (p DockerProvisioner) StartProject(project *types.Project) error {
 	return util.StartContainer(project)
 }
 
-func (p DockerProvisionerPlugin) StopProject(project workspace.Project) error {
+func (p DockerProvisioner) StopProject(project *types.Project) error {
 	return util.StopContainer(project)
 }
 
-func (p DockerProvisionerPlugin) DestroyProject(project workspace.Project) error {
+func (p DockerProvisioner) DestroyProject(project *types.Project) error {
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -104,7 +104,7 @@ func (p DockerProvisionerPlugin) DestroyProject(project workspace.Project) error
 		return err
 	}
 
-	err = cli.ContainerRemove(ctx, util.GetContainerName(project), types.ContainerRemoveOptions{
+	err = cli.ContainerRemove(ctx, util.GetContainerName(project), docker_types.ContainerRemoveOptions{
 		Force:         true,
 		RemoveVolumes: true,
 	})
@@ -125,7 +125,7 @@ func (p DockerProvisionerPlugin) DestroyProject(project workspace.Project) error
 	return nil
 }
 
-func (p DockerProvisionerPlugin) GetProjectInfo(project workspace.Project) (*workspace.ProjectInfo, error) {
+func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.ProjectInfo, error) {
 	isRunning := true
 	info, err := util.GetContainerInfo(project)
 	if err != nil {
@@ -137,12 +137,17 @@ func (p DockerProvisionerPlugin) GetProjectInfo(project workspace.Project) (*wor
 		}
 	}
 
-	return &workspace.ProjectInfo{
+	provisionerMetadata, err := utils.StructToProtobufStruct(info.Config.Labels)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.ProjectInfo{
 		Name:                project.Name,
 		IsRunning:           isRunning,
 		Created:             info.Created,
 		Started:             info.State.StartedAt,
 		Finished:            info.State.FinishedAt,
-		ProvisionerMetadata: info.Config.Labels,
+		ProvisionerMetadata: provisionerMetadata,
 	}, nil
 }
