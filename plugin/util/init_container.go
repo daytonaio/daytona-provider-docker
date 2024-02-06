@@ -6,9 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/daytonaio/daytona/agent/workspace"
-
-	"github.com/docker/docker/api/types"
+	"github.com/daytonaio/daytona/grpc/proto/types"
+	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
@@ -16,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitContainer(project workspace.Project, workdirPath string, imageName string) error {
+func InitContainer(project *types.Project, workdirPath string, imageName string) error {
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -24,7 +23,7 @@ func InitContainer(project workspace.Project, workdirPath string, imageName stri
 		return err
 	}
 
-	images, err := cli.ImageList(ctx, types.ImageListOptions{})
+	images, err := cli.ImageList(ctx, docker_types.ImageListOptions{})
 	if err != nil {
 		return err
 	}
@@ -41,7 +40,7 @@ func InitContainer(project workspace.Project, workdirPath string, imageName stri
 
 	if !found {
 		log.Info("Image not found, pulling...")
-		responseBody, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
+		responseBody, err := cli.ImagePull(ctx, imageName, docker_types.ImagePullOptions{})
 		if err != nil {
 			return err
 		}
@@ -62,7 +61,7 @@ func InitContainer(project workspace.Project, workdirPath string, imageName stri
 	}
 
 	envVars := []string{
-		"DAYTONA_WS_NAME=" + project.Workspace.Name,
+		"DAYTONA_WS_ID=" + project.WorkspaceId,
 		"DAYTONA_WS_DIR=" + project.Name,
 		"DAYTONA_WS_PROJECT_NAME=" + project.Name,
 		"DAYTONA_WS_PROJECT_REPOSITORY_URL=" + project.Repository.Url,
@@ -72,7 +71,7 @@ func InitContainer(project workspace.Project, workdirPath string, imageName stri
 		Hostname: project.Name,
 		Image:    imageName,
 		Labels: map[string]string{
-			"daytona.workspace.name":                   project.Workspace.Name,
+			"daytona.workspace.id":                     project.WorkspaceId,
 			"daytona.workspace.project.name":           project.Name,
 			"daytona.workspace.project.repository.url": project.Repository.Url,
 			// todo: Add more properties here
@@ -86,7 +85,7 @@ func InitContainer(project workspace.Project, workdirPath string, imageName stri
 			"/tmp/daytona:/tmp/daytona",
 		},
 		Mounts:      mounts,
-		NetworkMode: container.NetworkMode(project.Workspace.Name),
+		NetworkMode: container.NetworkMode(project.WorkspaceId),
 	}, nil, nil, GetContainerName(project)) //	TODO: namespaced names
 	if err != nil {
 		return err
