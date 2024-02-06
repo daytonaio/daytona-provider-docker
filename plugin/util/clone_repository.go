@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	config_ssh_key "github.com/daytonaio/daytona/agent/config/ssh_key"
-	"github.com/daytonaio/daytona/agent/workspace"
+	"github.com/daytonaio/daytona/grpc/proto/types"
 
 	"github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"
@@ -16,7 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CloneRepository(project workspace.Project, clonePath string) error {
+func CloneRepository(project *types.Project, clonePath string) error {
 	repo := project.Repository
 
 	existingRepo, err := git.PlainOpen(clonePath)
@@ -57,8 +57,8 @@ func CloneRepository(project workspace.Project, clonePath string) error {
 	// }
 
 	// If the branch is equal to SHA, then we need to reset to the SHA
-	if repo.Branch != nil && repo.Branch != repo.SHA {
-		cloneOptions.ReferenceName = plumbing.ReferenceName("refs/heads/" + *repo.Branch)
+	if repo.Branch != "" && repo.Branch != repo.Sha {
+		cloneOptions.ReferenceName = plumbing.ReferenceName("refs/heads/" + repo.Branch)
 		cloneOptions.SingleBranch = true
 	}
 
@@ -117,7 +117,7 @@ func httpToSsh(repoUrl string) string {
 	return repoUrl
 }
 
-func initializeEmtpyRepository(project workspace.Project, clonePath string) error {
+func initializeEmtpyRepository(project *types.Project, clonePath string) error {
 	repo := project.Repository
 
 	log.WithFields(log.Fields{

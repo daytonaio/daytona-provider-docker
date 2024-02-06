@@ -3,21 +3,20 @@ package util
 import (
 	"context"
 
-	"github.com/daytonaio/daytona/agent/workspace"
-
-	"github.com/docker/docker/api/types"
+	"github.com/daytonaio/daytona/grpc/proto/types"
+	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
-func GetContainerName(project workspace.Project) string {
-	return project.Workspace.Name + "-" + project.Name
+func GetContainerName(project *types.Project) string {
+	return project.WorkspaceId + "-" + project.Name
 }
 
-func GetVolumeName(project workspace.Project) string {
+func GetVolumeName(project *types.Project) string {
 	return GetContainerName(project)
 }
 
-func GetContainerInfo(project workspace.Project) (*types.ContainerJSON, error) {
+func GetContainerInfo(project *types.Project) (*docker_types.ContainerJSON, error) {
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())

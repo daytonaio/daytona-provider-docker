@@ -8,14 +8,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/daytonaio/daytona/agent/workspace"
-
-	"github.com/docker/docker/api/types"
+	"github.com/daytonaio/daytona/grpc/proto/types"
+	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 )
 
-func StartContainer(project workspace.Project) error {
+func StartContainer(project *types.Project) error {
 	containerName := GetContainerName(project)
 	ctx := context.Background()
 
@@ -24,7 +23,7 @@ func StartContainer(project workspace.Project) error {
 		return err
 	}
 
-	err = cli.ContainerStart(ctx, containerName, types.ContainerStartOptions{})
+	err = cli.ContainerStart(ctx, containerName, docker_types.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -87,13 +86,13 @@ func StartContainer(project workspace.Project) error {
 	}
 
 	// Copy the file content to the container
-	err = cli.CopyToContainer(ctx, containerName, "/usr/local/bin", buf, types.CopyToContainerOptions{})
+	err = cli.CopyToContainer(ctx, containerName, "/usr/local/bin", buf, docker_types.CopyToContainerOptions{})
 	if err != nil {
 		return err
 	}
 
 	// start dockerd
-	execConfig := types.ExecConfig{
+	execConfig := docker_types.ExecConfig{
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -107,7 +106,7 @@ func StartContainer(project workspace.Project) error {
 
 	log.Debug("Daytona binary copied to container")
 
-	err = cli.ContainerExecStart(ctx, execResp.ID, types.ExecStartCheck{})
+	err = cli.ContainerExecStart(ctx, execResp.ID, docker_types.ExecStartCheck{})
 	if err != nil {
 		return err
 	}

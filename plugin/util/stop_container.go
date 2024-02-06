@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/daytonaio/daytona/agent/workspace"
+	"github.com/daytonaio/daytona/grpc/proto/types"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
-func StopContainer(project workspace.Project) error {
+func StopContainer(project *types.Project) error {
 	containerName := GetContainerName(project)
 	ctx := context.Background()
 
