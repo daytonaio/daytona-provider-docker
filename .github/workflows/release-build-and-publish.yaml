@@ -52,8 +52,11 @@ jobs:
         with:
           go-version: '1.21'
 
+      - name: Set up private module credentials
+        run: git config --global url."https://daytonaBot:${{ secrets.GITHUBBOT_TOKEN }}@github.com/daytonaio/daytona".insteadOf "https://github.com/daytonaio/daytona"
+
       - name: Build binaries
-        run: GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o docker-provisioner-plugin-${{ matrix.goos }}-${{ matrix.goarch }}.so -buildmode=plugin
+        run: GOPRIVATE=github.com/daytonaio/daytona GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o docker-provisioner-plugin-${{ matrix.goos }}-${{ matrix.goarch }}.so -buildmode=plugin
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
