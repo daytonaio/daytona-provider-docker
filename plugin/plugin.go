@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path"
@@ -10,12 +9,16 @@ import (
 
 	"github.com/daytonaio/daytona/grpc/proto/types"
 	"github.com/daytonaio/daytona/grpc/utils"
-	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	log "github.com/sirupsen/logrus"
 )
 
 type DockerProvisioner struct {
+}
+
+type workspaceMetadata struct {
+	NetworkId string
 }
 
 func (p DockerProvisioner) GetName() (string, error) {
@@ -56,7 +59,27 @@ func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) error {
 }
 
 func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
-	return nil, errors.New("not implemented")
+	provisionerMetadata, err := p.getWorkspaceMetadata(workspace)
+	if err != nil {
+		return nil, err
+	}
+
+	workspaceInfo := &types.WorkspaceInfo{
+		Name:                workspace.Name,
+		ProvisionerMetadata: provisionerMetadata,
+	}
+
+	projectInfos := []*types.ProjectInfo{}
+	for _, project := range workspace.Projects {
+		projectInfo, err := p.GetProjectInfo(project)
+		if err != nil {
+			return nil, err
+		}
+		projectInfos = append(projectInfos, projectInfo)
+	}
+	workspaceInfo.Projects = projectInfos
+
+	return workspaceInfo, nil
 }
 
 func (p DockerProvisioner) CreateProject(project *types.Project) error {
@@ -97,23 +120,8 @@ func (p DockerProvisioner) StopProject(project *types.Project) error {
 }
 
 func (p DockerProvisioner) DestroyProject(project *types.Project) error {
-	ctx := context.Background()
-
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	err := util.RemoveContainer(project)
 	if err != nil {
-		return err
-	}
-
-	err = cli.ContainerRemove(ctx, util.GetContainerName(project), docker_types.ContainerRemoveOptions{
-		Force:         true,
-		RemoveVolumes: true,
-	})
-	if err != nil && !client.IsErrNotFound(err) {
-		return err
-	}
-
-	err = cli.VolumeRemove(ctx, util.GetVolumeName(project), true)
-	if err != nil && !client.IsErrNotFound(err) {
 		return err
 	}
 
@@ -150,4 +158,16 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 		Finished:            info.State.FinishedAt,
 		ProvisionerMetadata: provisionerMetadata,
 	}, nil
+}
+
+func (p DockerProvisioner) getWorkspaceMetadata(workspace *types.Workspace) (*structpb.Struct, error) {
+	metadata := workspaceMetadata{
+		NetworkId: workspace.Id,
+	}
+
+	protoMetadata, err := utils.StructToProtobufStruct(metadata)
+	if err != nil {
+		return nil, err
+	}
+	return protoMetadata, nil
 }
