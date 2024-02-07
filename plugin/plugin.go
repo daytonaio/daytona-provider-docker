@@ -52,7 +52,7 @@ func (p DockerProvisioner) StopWorkspace(workspace *types.Workspace) error {
 }
 
 func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) error {
-	return nil
+	return util.RemoveNetwork(workspace.Id)
 }
 
 func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
