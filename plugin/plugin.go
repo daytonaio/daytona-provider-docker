@@ -145,9 +145,15 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 		}
 	}
 
-	provisionerMetadata, err := utils.StructToProtobufStruct(info.Config.Labels)
-	if err != nil {
-		return nil, err
+	var provisionerMetadata *structpb.Struct = nil
+
+	if info != nil && info.Config != nil && info.Config.Labels != nil {
+		provisionerMetadata, err = utils.StructToProtobufStruct(info.Config.Labels)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		log.Warn("Could not get container labels for project: ", project.Name)
 	}
 
 	return &types.ProjectInfo{
