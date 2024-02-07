@@ -5,16 +5,15 @@ import (
 	provisioner_manager "github.com/daytonaio/daytona/plugin/provisioner/manager"
 	"github.com/hashicorp/go-plugin"
 
-	. "provisioner_plugin/plugin"
+	provisioner_plugin "provisioner_plugin/plugin"
 )
 
 func main() {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: provisioner_manager.ProvisionerHandshakeConfig,
 		Plugins: map[string]plugin.Plugin{
-			"docker-provisioner": &provisioner.ProvisionerPlugin{Impl: &DockerProvisioner{}},
+			"docker-provisioner": &provisioner.ProvisionerPlugin{Impl: &provisioner_plugin.DockerProvisioner{}},
 		},
-		// A non-nil value here enables gRPC serving for this plugin...
 		GRPCServer: plugin.DefaultGRPCServer,
 	})
 }
