@@ -40,7 +40,7 @@ func (p DockerProvisioner) getProjectPath(project *types.Project) string {
 }
 
 func (p DockerProvisioner) CreateWorkspace(workspace *types.Workspace) error {
-	return nil
+	return util.CreateNetwork(workspace.Id)
 }
 
 func (p DockerProvisioner) StartWorkspace(workspace *types.Workspace) error {
