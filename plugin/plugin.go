@@ -18,12 +18,12 @@ import (
 type DockerProvisioner struct {
 }
 
-func (p DockerProvisioner) GetName() string {
-	return "docker"
+func (p DockerProvisioner) GetName() (string, error) {
+	return "docker", nil
 }
 
-func (p DockerProvisioner) GetVersion() string {
-	return "0.0.1"
+func (p DockerProvisioner) GetVersion() (string, error) {
+	return "0.0.1", nil
 }
 
 func (p DockerProvisioner) Configure() (interface{}, error) {
