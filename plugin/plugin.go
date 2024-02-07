@@ -10,15 +10,12 @@ import (
 
 	"github.com/daytonaio/daytona/grpc/proto/types"
 	"github.com/daytonaio/daytona/grpc/utils"
-	"github.com/daytonaio/daytona/plugin/provisioner"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 )
 
 type DockerProvisioner struct {
-	provisioner.Provisioner
-	BasePath string
 }
 
 func (p DockerProvisioner) GetName() string {
@@ -38,7 +35,8 @@ func (p DockerProvisioner) SetConfig(config interface{}) error {
 }
 
 func (p DockerProvisioner) getProjectPath(project *types.Project) string {
-	return path.Join(p.BasePath, "workspaces", project.WorkspaceId, "projects", project.Name)
+	// TODO: project path root config
+	return path.Join("/tmp", "workspaces", project.WorkspaceId, "projects", project.Name)
 }
 
 func (p DockerProvisioner) CreateWorkspace(workspace *types.Workspace) error {
@@ -57,7 +55,7 @@ func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) error {
 	return nil
 }
 
-func (p DockerProvisioner) GetWorkspaceMetadata(workspace *types.Workspace) (*interface{}, error) {
+func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
 	return nil, errors.New("not implemented")
 }
 
