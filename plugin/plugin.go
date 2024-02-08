@@ -43,6 +43,12 @@ func (p DockerProvisioner) getProjectPath(project *types.Project) string {
 }
 
 func (p DockerProvisioner) CreateWorkspace(workspace *types.Workspace) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	log.Info("Working directory: ", wd)
 	return util.CreateNetwork(workspace.Id)
 }
 
@@ -55,6 +61,11 @@ func (p DockerProvisioner) StopWorkspace(workspace *types.Workspace) error {
 }
 
 func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) error {
+	err := os.RemoveAll(path.Join("/tmp", "workspaces", workspace.Id))
+	if err != nil {
+		return err
+	}
+
 	return util.RemoveNetwork(workspace.Id)
 }
 
