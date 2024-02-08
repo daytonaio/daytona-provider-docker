@@ -16,10 +16,16 @@ import (
 )
 
 type DockerProvisioner struct {
+	BasePath *string
 }
 
 type workspaceMetadata struct {
 	NetworkId string
+}
+
+func (p *DockerProvisioner) Initialize(req *proto.InitializeProvisionerRequest) error {
+	p.BasePath = &req.BasePath
+	return nil
 }
 
 func (p DockerProvisioner) GetInfo() (*proto.ProvisionerInfo, error) {
@@ -37,18 +43,11 @@ func (p DockerProvisioner) SetConfig(config interface{}) error {
 	return errors.New("not implemented")
 }
 
-func (p DockerProvisioner) getProjectPath(project *types.Project) string {
-	// TODO: project path root config
-	return path.Join("/tmp", "workspaces", project.WorkspaceId, "projects", project.Name)
+func (p DockerProvisioner) getProjectPath(basePath string, project *types.Project) string {
+	return path.Join(basePath, "workspaces", project.WorkspaceId, "projects", project.Name)
 }
 
 func (p DockerProvisioner) CreateWorkspace(workspace *types.Workspace) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	log.Info("Working directory: ", wd)
 	return util.CreateNetwork(workspace.Id)
 }
 
@@ -96,7 +95,11 @@ func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.
 func (p DockerProvisioner) CreateProject(project *types.Project) error {
 	log.Info("Initializing project: ", project.Name)
 
-	clonePath := p.getProjectPath(project)
+	if p.BasePath == nil {
+		return errors.New("BasePath not set. Did you forget to call Initialize?")
+	}
+
+	clonePath := p.getProjectPath(*p.BasePath, project)
 
 	err := os.MkdirAll(clonePath, 0755)
 	if err != nil {
@@ -136,7 +139,11 @@ func (p DockerProvisioner) DestroyProject(project *types.Project) error {
 		return err
 	}
 
-	err = os.RemoveAll(p.getProjectPath(project))
+	if p.BasePath == nil {
+		return errors.New("BasePath not set. Did you forget to call Initialize?")
+	}
+
+	err = os.RemoveAll(p.getProjectPath(*p.BasePath, project))
 	if err != nil {
 		return err
 	}
