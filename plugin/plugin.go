@@ -9,6 +9,7 @@ import (
 
 	"github.com/daytonaio/daytona/grpc/proto/types"
 	"github.com/daytonaio/daytona/grpc/utils"
+	"github.com/daytonaio/daytona/plugin/provisioner/grpc/proto"
 	"github.com/docker/docker/client"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	log "github.com/sirupsen/logrus"
@@ -21,12 +22,11 @@ type workspaceMetadata struct {
 	NetworkId string
 }
 
-func (p DockerProvisioner) GetName() (string, error) {
-	return "docker", nil
-}
-
-func (p DockerProvisioner) GetVersion() (string, error) {
-	return "0.0.1", nil
+func (p DockerProvisioner) GetInfo() (*proto.ProvisionerInfo, error) {
+	return &proto.ProvisionerInfo{
+		Name:    "docker-provisioner",
+		Version: "0.0.1",
+	}, nil
 }
 
 func (p DockerProvisioner) Configure() (interface{}, error) {
