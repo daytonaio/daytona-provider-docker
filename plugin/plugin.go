@@ -60,7 +60,11 @@ func (p DockerProvisioner) StopWorkspace(workspace *types.Workspace) error {
 }
 
 func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) error {
-	err := os.RemoveAll(path.Join("/tmp", "workspaces", workspace.Id))
+	if p.BasePath == nil {
+		return errors.New("BasePath not set. Did you forget to call Initialize?")
+	}
+
+	err := os.RemoveAll(path.Join(*p.BasePath, "workspaces", workspace.Id))
 	if err != nil {
 		return err
 	}
