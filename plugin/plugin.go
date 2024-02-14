@@ -18,6 +18,7 @@ import (
 type DockerProvisioner struct {
 	BasePath          *string
 	ServerDownloadUrl *string
+	ServerVersion     *string
 }
 
 type workspaceMetadata struct {
@@ -27,6 +28,7 @@ type workspaceMetadata struct {
 func (p *DockerProvisioner) Initialize(req *proto.InitializeProvisionerRequest) error {
 	p.BasePath = &req.BasePath
 	p.ServerDownloadUrl = &req.ServerDownloadUrl
+	p.ServerVersion = &req.ServerVersion
 	return nil
 }
 
@@ -109,6 +111,11 @@ func (p DockerProvisioner) CreateProject(project *types.Project) error {
 		return errors.New("BasePath not set. Did you forget to call Initialize?")
 	}
 
+	serverVersion := "latest"
+	if p.ServerVersion != nil {
+		serverVersion = *p.ServerVersion
+	}
+
 	clonePath := p.getProjectPath(*p.BasePath, project)
 
 	err := os.MkdirAll(clonePath, 0755)
@@ -122,7 +129,7 @@ func (p DockerProvisioner) CreateProject(project *types.Project) error {
 	}
 
 	// TODO: Project image from config
-	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project", *p.ServerDownloadUrl)
+	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project", *p.ServerDownloadUrl, serverVersion)
 	if err != nil {
 		return err
 	}
