@@ -22,8 +22,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/daytonaio/daytona v0.0.1-alpha.10 h1:67nkEHbXQTWIKZo/qM/4T78HoL75oScj19RGXb5L8jg=
-github.com/daytonaio/daytona v0.0.1-alpha.10/go.mod h1:aXpkf8ELgvau2BG0pnMZZ22NNdxOyfbGcQeuwfLhdWc=
+github.com/daytonaio/daytona v0.0.1-alpha.11 h1:fv0rh7r+Ob2XT1p6MzYjUtdumQFZRx2fmp45CMSsIbc=
+github.com/daytonaio/daytona v0.0.1-alpha.11/go.mod h1:aXpkf8ELgvau2BG0pnMZZ22NNdxOyfbGcQeuwfLhdWc=
 github.com/distribution/reference v0.5.0 h1:/FUIFXtfc/x2gpa5/VGfiGLuOIdYa1t65IKK2OFGvA0=
 github.com/distribution/reference v0.5.0/go.mod h1:BbU0aIcezP1/5jX/8MP0YiH4SdvB5Y4f/wlDRiLyi3E=
 github.com/docker/distribution v2.8.3+incompatible h1:AtKxIZ36LoNK51+Z6RpzLpddBirtxJnzDrHLEKxTAYk=
