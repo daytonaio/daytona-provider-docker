@@ -65,6 +65,7 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 		"DAYTONA_WS_DIR=" + project.Name,
 		"DAYTONA_WS_PROJECT_NAME=" + project.Name,
 		"DAYTONA_WS_PROJECT_REPOSITORY_URL=" + project.Repository.Url,
+		"AUTH_KEY=" + project.AuthKey,
 	}
 
 	_, err = cli.ContainerCreate(ctx, &container.Config{
@@ -77,7 +78,7 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 			// todo: Add more properties here
 		},
 		Env: envVars,
-		Cmd: []string{"curl", serverDownloadUrl, "|", "bash", "&&", "daytona", "agent"},
+		Cmd: []string{"bash", "-c", fmt.Sprintf("curl %s | bash && daytona agent", serverDownloadUrl)},
 	}, &container.HostConfig{
 		Privileged: true,
 		Binds: []string{
