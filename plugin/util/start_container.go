@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/daytonaio/daytona/grpc/proto/types"
+	"github.com/daytonaio/daytona/common/grpc/proto/types"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"

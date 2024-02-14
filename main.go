@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/daytonaio/daytona/plugin/provisioner"
-	provisioner_manager "github.com/daytonaio/daytona/plugin/provisioner/manager"
+	"github.com/daytonaio/daytona/plugins/provisioner"
+	provisioner_manager "github.com/daytonaio/daytona/plugins/provisioner/manager"
 	"github.com/hashicorp/go-plugin"
 
 	provisioner_plugin "provisioner_plugin/plugin"
