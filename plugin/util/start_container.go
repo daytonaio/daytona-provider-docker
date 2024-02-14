@@ -1,17 +1,12 @@
 package util
 
 import (
-	"archive/tar"
-	"bytes"
 	"context"
-	"io"
-	"os"
 	"time"
 
 	"github.com/daytonaio/daytona/common/grpc/proto/types"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	log "github.com/sirupsen/logrus"
 )
 
 func StartContainer(project *types.Project) error {
@@ -43,54 +38,6 @@ func StartContainer(project *types.Project) error {
 		time.Sleep(1 * time.Second)
 	}
 
-	//	copy daytona binary
-	daytonaPath, err := os.Executable()
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Open(daytonaPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	buf := new(bytes.Buffer)
-	tw := tar.NewWriter(buf)
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
-	if err != nil {
-		return err
-	}
-
-	// Set the name of the file in the tar archive
-	header.Name = "daytona"
-
-	err = tw.WriteHeader(header)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(tw, file)
-	if err != nil {
-		return err
-	}
-
-	err = tw.Close()
-	if err != nil {
-		return err
-	}
-
-	// Copy the file content to the container
-	err = cli.CopyToContainer(ctx, containerName, "/usr/local/bin", buf, docker_types.CopyToContainerOptions{})
-	if err != nil {
-		return err
-	}
-
 	// start dockerd
 	execConfig := docker_types.ExecConfig{
 		Tty:          true,
@@ -103,8 +50,6 @@ func StartContainer(project *types.Project) error {
 	if err != nil {
 		return err
 	}
-
-	log.Debug("Daytona binary copied to container")
 
 	err = cli.ContainerExecStart(ctx, execResp.ID, docker_types.ExecStartCheck{})
 	if err != nil {
