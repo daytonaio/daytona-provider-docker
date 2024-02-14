@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	config_ssh_key "github.com/daytonaio/daytona/agent/config/ssh_key"
-	"github.com/daytonaio/daytona/grpc/proto/types"
+	"github.com/daytonaio/daytona/common/grpc/proto/types"
+	config_ssh_key "github.com/daytonaio/daytona/server/config/ssh_key"
 
 	"github.com/go-git/go-git/v5"
 	gitconfig "github.com/go-git/go-git/v5/config"

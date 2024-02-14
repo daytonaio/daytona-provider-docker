@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/daytonaio/daytona/grpc/proto/types"
+	"github.com/daytonaio/daytona/common/grpc/proto/types"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitContainer(project *types.Project, workdirPath string, imageName string) error {
+func InitContainer(project *types.Project, workdirPath, imageName, serverDownloadUrl string) error {
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -77,6 +77,7 @@ func InitContainer(project *types.Project, workdirPath string, imageName string)
 			// todo: Add more properties here
 		},
 		Env: envVars,
+		Cmd: []string{"curl", serverDownloadUrl, "|", "bash", "&&", "daytona", "agent"},
 	}, &container.HostConfig{
 		Privileged: true,
 		Binds: []string{
