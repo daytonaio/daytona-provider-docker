@@ -7,16 +7,17 @@ import (
 
 	"provisioner_plugin/plugin/util"
 
-	"github.com/daytonaio/daytona/grpc/proto/types"
-	"github.com/daytonaio/daytona/grpc/utils"
-	"github.com/daytonaio/daytona/plugin/provisioner/grpc/proto"
+	"github.com/daytonaio/daytona/common/grpc/proto/types"
+	"github.com/daytonaio/daytona/common/grpc/utils"
+	"github.com/daytonaio/daytona/plugins/provisioner/grpc/proto"
 	"github.com/docker/docker/client"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	log "github.com/sirupsen/logrus"
 )
 
 type DockerProvisioner struct {
-	BasePath *string
+	BasePath          *string
+	ServerDownloadUrl *string
 }
 
 type workspaceMetadata struct {
@@ -25,6 +26,7 @@ type workspaceMetadata struct {
 
 func (p *DockerProvisioner) Initialize(req *proto.InitializeProvisionerRequest) error {
 	p.BasePath = &req.BasePath
+	p.ServerDownloadUrl = &req.ServerDownloadUrl
 	return nil
 }
 
@@ -99,6 +101,10 @@ func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.
 func (p DockerProvisioner) CreateProject(project *types.Project) error {
 	log.Info("Initializing project: ", project.Name)
 
+	if p.ServerDownloadUrl == nil {
+		return errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
+	}
+
 	if p.BasePath == nil {
 		return errors.New("BasePath not set. Did you forget to call Initialize?")
 	}
@@ -116,7 +122,7 @@ func (p DockerProvisioner) CreateProject(project *types.Project) error {
 	}
 
 	// TODO: Project image from config
-	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project")
+	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project", *p.ServerDownloadUrl)
 	if err != nil {
 		return err
 	}
