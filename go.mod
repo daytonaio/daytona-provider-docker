@@ -3,7 +3,7 @@ module provisioner_plugin
 go 1.21.6
 
 require (
-	github.com/daytonaio/daytona v0.0.1-alpha.12
+	github.com/daytonaio/daytona v0.0.1-alpha.13
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/golang/protobuf v1.5.3
