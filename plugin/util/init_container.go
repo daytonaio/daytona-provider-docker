@@ -79,8 +79,9 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 			"daytona.workspace.project.repository.url": project.Repository.Url,
 			// todo: Add more properties here
 		},
-		Env: envVars,
-		Cmd: []string{"bash", "-c", fmt.Sprintf("curl %s | bash && daytona agent", serverDownloadUrl)},
+		User: "daytona",
+		Env:  envVars,
+		Cmd:  []string{"bash", "-c", fmt.Sprintf("curl %s | bash && daytona agent", serverDownloadUrl)},
 	}, &container.HostConfig{
 		Privileged: true,
 		Binds: []string{
