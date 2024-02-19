@@ -129,11 +129,6 @@ func (p DockerProvisioner) CreateProject(project *types.Project) error {
 		return err
 	}
 
-	err = util.CloneRepository(project, clonePath)
-	if err != nil {
-		return err
-	}
-
 	// TODO: Project image from config
 	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project", *p.ServerDownloadUrl, serverVersion, *p.ServerUrl)
 	if err != nil {
@@ -141,6 +136,16 @@ func (p DockerProvisioner) CreateProject(project *types.Project) error {
 	}
 
 	err = util.StartContainer(project)
+	if err != nil {
+		return err
+	}
+
+	err = util.SetGitConfig(project, "daytona")
+	if err != nil {
+		return err
+	}
+
+	err = util.CloneRepository(project, path.Join("/workspaces", project.Name))
 	if err != nil {
 		return err
 	}
