@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitContainer(project *types.Project, workdirPath, imageName, serverDownloadUrl, serverVersion, serverUrl string) error {
+func InitContainer(project *types.Project, workdirPath, imageName, serverDownloadUrl, serverVersion, serverUrl, serverApiUrl string) error {
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -68,6 +68,7 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 		"DAYTONA_SERVER_AUTH_KEY=" + project.AuthKey,
 		"DAYTONA_SERVER_VERSION=" + serverVersion,
 		"DAYTONA_SERVER_URL=" + serverUrl,
+		"DAYTONA_SERVER_API_URL=" + serverApiUrl,
 	}
 
 	_, err = cli.ContainerCreate(ctx, &container.Config{
