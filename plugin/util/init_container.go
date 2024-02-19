@@ -85,8 +85,7 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 	}, &container.HostConfig{
 		Privileged: true,
 		Binds: []string{
-			fmt.Sprintf("%s:/%s", workdirPath, project.Name),
-			// project.GetSetupPath() + ":/setup",
+			fmt.Sprintf("%s:/workspaces", workdirPath),
 			"/tmp/daytona:/tmp/daytona",
 		},
 		Mounts:      mounts,
