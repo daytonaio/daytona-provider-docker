@@ -20,6 +20,7 @@ type DockerProvisioner struct {
 	ServerDownloadUrl *string
 	ServerVersion     *string
 	ServerUrl         *string
+	ServerApiUrl      *string
 }
 
 type workspaceMetadata struct {
@@ -31,6 +32,7 @@ func (p *DockerProvisioner) Initialize(req *proto.InitializeProvisionerRequest) 
 	p.ServerDownloadUrl = &req.ServerDownloadUrl
 	p.ServerVersion = &req.ServerVersion
 	p.ServerUrl = &req.ServerUrl
+	p.ServerApiUrl = &req.ServerApiUrl
 	return nil
 }
 
@@ -117,6 +119,10 @@ func (p DockerProvisioner) CreateProject(project *types.Project) error {
 		return errors.New("ServerUrl not set. Did you forget to call Initialize?")
 	}
 
+	if p.ServerApiUrl == nil {
+		return errors.New("ServerApiUrl not set. Did you forget to call Initialize?")
+	}
+
 	serverVersion := "latest"
 	if p.ServerVersion != nil {
 		serverVersion = *p.ServerVersion
@@ -130,7 +136,7 @@ func (p DockerProvisioner) CreateProject(project *types.Project) error {
 	}
 
 	// TODO: Project image from config
-	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project", *p.ServerDownloadUrl, serverVersion, *p.ServerUrl)
+	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project", *p.ServerDownloadUrl, serverVersion, *p.ServerUrl, *p.ServerApiUrl)
 	if err != nil {
 		return err
 	}
