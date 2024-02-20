@@ -14,6 +14,5 @@ func main() {
 		Plugins: map[string]plugin.Plugin{
 			"docker-provisioner": &provisioner.ProvisionerPlugin{Impl: &provisioner_plugin.DockerProvisioner{}},
 		},
-		GRPCServer: plugin.DefaultGRPCServer,
 	})
 }

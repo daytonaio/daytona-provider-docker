@@ -7,11 +7,10 @@ import (
 
 	"provisioner_plugin/plugin/util"
 
-	"github.com/daytonaio/daytona/common/grpc/proto/types"
-	"github.com/daytonaio/daytona/common/grpc/utils"
-	"github.com/daytonaio/daytona/plugins/provisioner/grpc/proto"
+	"github.com/daytonaio/daytona/common/types"
+	"github.com/daytonaio/daytona/plugins/provisioner"
 	"github.com/docker/docker/client"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,7 +26,7 @@ type workspaceMetadata struct {
 	NetworkId string
 }
 
-func (p *DockerProvisioner) Initialize(req *proto.InitializeProvisionerRequest) error {
+func (p *DockerProvisioner) Initialize(req provisioner.InitializeProvisionerRequest) error {
 	p.BasePath = &req.BasePath
 	p.ServerDownloadUrl = &req.ServerDownloadUrl
 	p.ServerVersion = &req.ServerVersion
@@ -36,8 +35,8 @@ func (p *DockerProvisioner) Initialize(req *proto.InitializeProvisionerRequest) 
 	return nil
 }
 
-func (p DockerProvisioner) GetInfo() (*proto.ProvisionerInfo, error) {
-	return &proto.ProvisionerInfo{
+func (p DockerProvisioner) GetInfo() (provisioner.ProvisionerInfo, error) {
+	return provisioner.ProvisionerInfo{
 		Name:    "docker-provisioner",
 		Version: "0.0.1",
 	}, nil
@@ -88,7 +87,7 @@ func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.
 
 	workspaceInfo := &types.WorkspaceInfo{
 		Name:                workspace.Name,
-		ProvisionerMetadata: provisionerMetadata,
+		ProvisionerMetadata: &provisionerMetadata,
 	}
 
 	projectInfos := []*types.ProjectInfo{}
@@ -197,35 +196,31 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 		}
 	}
 
-	var provisionerMetadata *structpb.Struct = nil
+	if info != nil || info.State == nil {
+		return nil, errors.New("could not get container state")
+	}
 
-	if info != nil && info.Config != nil && info.Config.Labels != nil {
-		provisionerMetadata, err = utils.StructToProtobufStruct(info.Config.Labels)
-		if err != nil {
-			return nil, err
-		}
+	projectInfo := &types.ProjectInfo{
+		Name:      project.Name,
+		IsRunning: isRunning,
+		Created:   info.Created,
+		Started:   info.State.StartedAt,
+		Finished:  info.State.FinishedAt,
+	}
+
+	if info.Config != nil && info.Config.Labels != nil {
+		var metadata *interface{}
+		mapstructure.Decode(info.Config.Labels, &metadata)
+		projectInfo.ProvisionerMetadata = metadata
 	} else {
 		log.Warn("Could not get container labels for project: ", project.Name)
 	}
 
-	return &types.ProjectInfo{
-		Name:                project.Name,
-		IsRunning:           isRunning,
-		Created:             info.Created,
-		Started:             info.State.StartedAt,
-		Finished:            info.State.FinishedAt,
-		ProvisionerMetadata: provisionerMetadata,
-	}, nil
+	return projectInfo, nil
 }
 
-func (p DockerProvisioner) getWorkspaceMetadata(workspace *types.Workspace) (*structpb.Struct, error) {
-	metadata := workspaceMetadata{
+func (p DockerProvisioner) getWorkspaceMetadata(workspace *types.Workspace) (interface{}, error) {
+	return workspaceMetadata{
 		NetworkId: workspace.Id,
-	}
-
-	protoMetadata, err := utils.StructToProtobufStruct(metadata)
-	if err != nil {
-		return nil, err
-	}
-	return protoMetadata, nil
+	}, nil
 }
