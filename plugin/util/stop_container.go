@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/daytonaio/daytona/common/grpc/proto/types"
+	"github.com/daytonaio/daytona/common/types"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
