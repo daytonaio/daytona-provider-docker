@@ -208,8 +208,8 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 	}
 
 	if info.Config != nil && info.Config.Labels != nil {
-		var metadata *interface{}
-		mapstructure.Decode(info.Config.Labels, &metadata)
+		metadata := new(interface{})
+		mapstructure.Decode(info.Config.Labels, metadata)
 		projectInfo.ProvisionerMetadata = metadata
 	} else {
 		log.Warn("Could not get container labels for project: ", project.Name)
