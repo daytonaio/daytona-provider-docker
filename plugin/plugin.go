@@ -22,7 +22,7 @@ type DockerProvisioner struct {
 	ServerApiUrl      *string
 }
 
-type workspaceMetadata struct {
+type WorkspaceMetadata struct {
 	NetworkId string
 }
 
@@ -196,7 +196,7 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 		}
 	}
 
-	if info != nil || info.State == nil {
+	if info == nil || info.State == nil {
 		return nil, errors.New("could not get container state")
 	}
 
@@ -220,7 +220,7 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 }
 
 func (p DockerProvisioner) getWorkspaceMetadata(workspace *types.Workspace) (interface{}, error) {
-	return workspaceMetadata{
+	return WorkspaceMetadata{
 		NetworkId: workspace.Id,
 	}, nil
 }
