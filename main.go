@@ -29,4 +29,5 @@ func main() {
 
 func init() {
 	gob.Register(plugin.WorkspaceMetadata{})
+	gob.Register(map[string]string{})
 }
