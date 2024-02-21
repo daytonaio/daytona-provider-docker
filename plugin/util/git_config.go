@@ -34,7 +34,7 @@ func SetGitConfig(project *types.Project, user string) error {
 		cfg.NewSection("credential")
 	}
 
-	cfg.Section("credential").NewKey("helper", "daytona git-cred")
+	cfg.Section("credential").NewKey("helper", "/usr/local/bin/daytona git-cred")
 
 	var buf bytes.Buffer
 	_, err = cfg.WriteTo(&buf)
