@@ -26,13 +26,13 @@ type WorkspaceMetadata struct {
 	NetworkId string
 }
 
-func (p *DockerProvisioner) Initialize(req provisioner.InitializeProvisionerRequest) (provisioner.Empty, error) {
+func (p *DockerProvisioner) Initialize(req provisioner.InitializeProvisionerRequest) (types.Empty, error) {
 	p.BasePath = &req.BasePath
 	p.ServerDownloadUrl = &req.ServerDownloadUrl
 	p.ServerVersion = &req.ServerVersion
 	p.ServerUrl = &req.ServerUrl
 	p.ServerApiUrl = &req.ServerApiUrl
-	return provisioner.Empty{}, nil
+	return types.Empty{}, nil
 }
 
 func (p DockerProvisioner) GetInfo() (provisioner.ProvisionerInfo, error) {
