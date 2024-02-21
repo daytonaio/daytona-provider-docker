@@ -107,7 +107,7 @@ func WaitForBinaryDownload(project *types.Project) error {
 		return err
 	}
 
-	cmd := []string{"bash", "-c", "ls /usr/local/bin/daytona"}
+	cmd := []string{"stat", "/usr/local/bin/daytona"}
 
 	for {
 		execConfig, err := cli.ContainerExecCreate(ctx, GetContainerName(project), docker_types.ExecConfig{

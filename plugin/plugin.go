@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"path"
-	"time"
 
 	"provisioner_plugin/plugin/util"
 
@@ -152,8 +151,6 @@ func (p DockerProvisioner) CreateProject(project *types.Project) (*types.Empty, 
 	if err != nil {
 		return new(types.Empty), err
 	}
-
-	time.Sleep(10 * time.Second)
 
 	err = util.CloneRepository(project, path.Join("/workspaces", project.Name))
 	if err != nil {
