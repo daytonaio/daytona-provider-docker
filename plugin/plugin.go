@@ -147,6 +147,11 @@ func (p DockerProvisioner) CreateProject(project *types.Project) (*types.Empty, 
 		return new(types.Empty), err
 	}
 
+	err = util.WaitForBinaryDownload(project)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
 	err = util.CloneRepository(project, path.Join("/workspaces", project.Name))
 	if err != nil {
 		return new(types.Empty), err

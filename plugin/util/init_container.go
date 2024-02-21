@@ -98,3 +98,41 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 
 	return nil
 }
+
+func WaitForBinaryDownload(project *types.Project) error {
+	ctx := context.Background()
+
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return err
+	}
+
+	cmd := []string{"bash", "-c", "ls /usr/local/bin/daytona"}
+
+	for {
+		execConfig, err := cli.ContainerExecCreate(ctx, GetContainerName(project), docker_types.ExecConfig{
+			User: "daytona",
+			Cmd:  cmd,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = cli.ContainerExecStart(ctx, execConfig.ID, docker_types.ExecStartCheck{})
+		if err != nil {
+			return err
+		}
+
+		resp, err := cli.ContainerExecInspect(ctx, execConfig.ID)
+		if err != nil {
+			return err
+		}
+
+		if resp.ExitCode == 0 {
+			break
+		}
+	}
+
+	return nil
+
+}
