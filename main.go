@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/gob"
 	"os"
 
 	"github.com/daytonaio/daytona/plugins/provisioner"
@@ -25,9 +24,4 @@ func main() {
 		},
 		Logger: logger,
 	})
-}
-
-func init() {
-	gob.Register(plugin.WorkspaceMetadata{})
-	gob.Register(map[string]string{})
 }

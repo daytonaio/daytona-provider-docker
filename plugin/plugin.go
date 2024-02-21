@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path"
@@ -10,7 +11,6 @@ import (
 	"github.com/daytonaio/daytona/common/types"
 	"github.com/daytonaio/daytona/plugins/provisioner"
 	"github.com/docker/docker/client"
-	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,7 +22,7 @@ type DockerProvisioner struct {
 	ServerApiUrl      *string
 }
 
-type WorkspaceMetadata struct {
+type workspaceMetadata struct {
 	NetworkId string
 }
 
@@ -84,7 +84,7 @@ func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.
 
 	workspaceInfo := &types.WorkspaceInfo{
 		Name:                workspace.Name,
-		ProvisionerMetadata: &provisionerMetadata,
+		ProvisionerMetadata: provisionerMetadata,
 	}
 
 	projectInfos := []*types.ProjectInfo{}
@@ -208,9 +208,11 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 	}
 
 	if info.Config != nil && info.Config.Labels != nil {
-		metadata := new(interface{})
-		mapstructure.Decode(info.Config.Labels, metadata)
-		projectInfo.ProvisionerMetadata = metadata
+		metadata, err := json.Marshal(info.Config.Labels)
+		if err != nil {
+			return nil, err
+		}
+		projectInfo.ProvisionerMetadata = string(metadata)
 	} else {
 		log.Warn("Could not get container labels for project: ", project.Name)
 	}
@@ -218,8 +220,15 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 	return projectInfo, nil
 }
 
-func (p DockerProvisioner) getWorkspaceMetadata(workspace *types.Workspace) (interface{}, error) {
-	return WorkspaceMetadata{
+func (p DockerProvisioner) getWorkspaceMetadata(workspace *types.Workspace) (string, error) {
+	metadata := workspaceMetadata{
 		NetworkId: workspace.Id,
-	}, nil
+	}
+
+	jsonContent, err := json.Marshal(metadata)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonContent), nil
 }
