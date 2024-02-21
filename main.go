@@ -1,14 +1,15 @@
 package main
 
 import (
+	"encoding/gob"
 	"os"
 
 	"github.com/daytonaio/daytona/plugins/provisioner"
 	provisioner_manager "github.com/daytonaio/daytona/plugins/provisioner/manager"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
+	hc_plugin "github.com/hashicorp/go-plugin"
 
-	provisioner_plugin "provisioner_plugin/plugin"
+	"provisioner_plugin/plugin"
 )
 
 func main() {
@@ -17,11 +18,15 @@ func main() {
 		Output:     os.Stderr,
 		JSONFormat: true,
 	})
-	plugin.Serve(&plugin.ServeConfig{
+	hc_plugin.Serve(&hc_plugin.ServeConfig{
 		HandshakeConfig: provisioner_manager.ProvisionerHandshakeConfig,
-		Plugins: map[string]plugin.Plugin{
-			"docker-provisioner": &provisioner.ProvisionerPlugin{Impl: &provisioner_plugin.DockerProvisioner{}},
+		Plugins: map[string]hc_plugin.Plugin{
+			"docker-provisioner": &provisioner.ProvisionerPlugin{Impl: &plugin.DockerProvisioner{}},
 		},
 		Logger: logger,
 	})
+}
+
+func init() {
+	gob.Register(plugin.WorkspaceMetadata{})
 }
