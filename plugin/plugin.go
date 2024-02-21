@@ -26,13 +26,13 @@ type WorkspaceMetadata struct {
 	NetworkId string
 }
 
-func (p *DockerProvisioner) Initialize(req provisioner.InitializeProvisionerRequest) (types.Empty, error) {
+func (p *DockerProvisioner) Initialize(req provisioner.InitializeProvisionerRequest) (*types.Empty, error) {
 	p.BasePath = &req.BasePath
 	p.ServerDownloadUrl = &req.ServerDownloadUrl
 	p.ServerVersion = &req.ServerVersion
 	p.ServerUrl = &req.ServerUrl
 	p.ServerApiUrl = &req.ServerApiUrl
-	return types.Empty{}, nil
+	return new(types.Empty), nil
 }
 
 func (p DockerProvisioner) GetInfo() (provisioner.ProvisionerInfo, error) {
@@ -55,25 +55,25 @@ func (p DockerProvisioner) CreateWorkspace(workspace *types.Workspace) (*types.E
 	return new(types.Empty), err
 }
 
-func (p DockerProvisioner) StartWorkspace(workspace *types.Workspace) (types.Empty, error) {
-	return types.Empty{}, nil
+func (p DockerProvisioner) StartWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+	return new(types.Empty), nil
 }
 
-func (p DockerProvisioner) StopWorkspace(workspace *types.Workspace) (types.Empty, error) {
-	return types.Empty{}, nil
+func (p DockerProvisioner) StopWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+	return new(types.Empty), nil
 }
 
-func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) (types.Empty, error) {
+func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) (*types.Empty, error) {
 	if p.BasePath == nil {
-		return types.Empty{}, errors.New("BasePath not set. Did you forget to call Initialize?")
+		return new(types.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
 	}
 
 	err := os.RemoveAll(path.Join(*p.BasePath, "workspaces", workspace.Id))
 	if err != nil {
-		return types.Empty{}, err
+		return new(types.Empty), err
 	}
 
-	return types.Empty{}, util.RemoveNetwork(workspace.Id)
+	return new(types.Empty), util.RemoveNetwork(workspace.Id)
 }
 
 func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
@@ -100,23 +100,23 @@ func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.
 	return workspaceInfo, nil
 }
 
-func (p DockerProvisioner) CreateProject(project *types.Project) (types.Empty, error) {
+func (p DockerProvisioner) CreateProject(project *types.Project) (*types.Empty, error) {
 	log.Info("Initializing project: ", project.Name)
 
 	if p.ServerDownloadUrl == nil {
-		return types.Empty{}, errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
+		return new(types.Empty), errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
 	}
 
 	if p.BasePath == nil {
-		return types.Empty{}, errors.New("BasePath not set. Did you forget to call Initialize?")
+		return new(types.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
 	}
 
 	if p.ServerUrl == nil {
-		return types.Empty{}, errors.New("ServerUrl not set. Did you forget to call Initialize?")
+		return new(types.Empty), errors.New("ServerUrl not set. Did you forget to call Initialize?")
 	}
 
 	if p.ServerApiUrl == nil {
-		return types.Empty{}, errors.New("ServerApiUrl not set. Did you forget to call Initialize?")
+		return new(types.Empty), errors.New("ServerApiUrl not set. Did you forget to call Initialize?")
 	}
 
 	serverVersion := "latest"
@@ -128,59 +128,59 @@ func (p DockerProvisioner) CreateProject(project *types.Project) (types.Empty, e
 
 	err := os.MkdirAll(clonePath, 0755)
 	if err != nil {
-		return types.Empty{}, err
+		return new(types.Empty), err
 	}
 
 	// TODO: Project image from config
 	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project", *p.ServerDownloadUrl, serverVersion, *p.ServerUrl, *p.ServerApiUrl)
 	if err != nil {
-		return types.Empty{}, err
+		return new(types.Empty), err
 	}
 
 	err = util.StartContainer(project)
 	if err != nil {
-		return types.Empty{}, err
+		return new(types.Empty), err
 	}
 
 	err = util.SetGitConfig(project, "daytona")
 	if err != nil {
-		return types.Empty{}, err
+		return new(types.Empty), err
 	}
 
 	err = util.CloneRepository(project, path.Join("/workspaces", project.Name))
 	if err != nil {
-		return types.Empty{}, err
+		return new(types.Empty), err
 	}
 
-	return types.Empty{}, nil
+	return new(types.Empty), nil
 }
 
-func (p DockerProvisioner) StartProject(project *types.Project) (types.Empty, error) {
+func (p DockerProvisioner) StartProject(project *types.Project) (*types.Empty, error) {
 	err := util.StartContainer(project)
-	return types.Empty{}, err
+	return new(types.Empty), err
 }
 
-func (p DockerProvisioner) StopProject(project *types.Project) (types.Empty, error) {
+func (p DockerProvisioner) StopProject(project *types.Project) (*types.Empty, error) {
 	err := util.StopContainer(project)
-	return types.Empty{}, err
+	return new(types.Empty), err
 }
 
-func (p DockerProvisioner) DestroyProject(project *types.Project) (types.Empty, error) {
+func (p DockerProvisioner) DestroyProject(project *types.Project) (*types.Empty, error) {
 	err := util.RemoveContainer(project)
 	if err != nil {
-		return types.Empty{}, err
+		return new(types.Empty), err
 	}
 
 	if p.BasePath == nil {
-		return types.Empty{}, errors.New("BasePath not set. Did you forget to call Initialize?")
+		return new(types.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
 	}
 
 	err = os.RemoveAll(p.getProjectPath(*p.BasePath, project))
 	if err != nil {
-		return types.Empty{}, err
+		return new(types.Empty), err
 	}
 
-	return types.Empty{}, nil
+	return new(types.Empty), nil
 }
 
 func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.ProjectInfo, error) {
