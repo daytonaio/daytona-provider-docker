@@ -50,9 +50,9 @@ func (p DockerProvisioner) getProjectPath(basePath string, project *types.Projec
 	return path.Join(basePath, "workspaces", project.WorkspaceId, "projects", project.Name)
 }
 
-func (p DockerProvisioner) CreateWorkspace(workspace types.Workspace) (types.Empty, error) {
+func (p DockerProvisioner) CreateWorkspace(workspace *types.Workspace) (*types.Empty, error) {
 	err := util.CreateNetwork(workspace.Id)
-	return types.Empty{}, err
+	return new(types.Empty), err
 }
 
 func (p DockerProvisioner) StartWorkspace(workspace *types.Workspace) (types.Empty, error) {
