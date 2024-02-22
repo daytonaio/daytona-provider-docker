@@ -65,7 +65,7 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 		"DAYTONA_WS_DIR=" + project.Name,
 		"DAYTONA_WS_PROJECT_NAME=" + project.Name,
 		"DAYTONA_WS_PROJECT_REPOSITORY_URL=" + project.Repository.Url,
-		"DAYTONA_SERVER_AUTH_KEY=" + project.AuthKey,
+		"DAYTONA_SERVER_API_KEY=" + project.ApiKey,
 		"DAYTONA_SERVER_VERSION=" + serverVersion,
 		"DAYTONA_SERVER_URL=" + serverUrl,
 		"DAYTONA_SERVER_API_URL=" + serverApiUrl,
