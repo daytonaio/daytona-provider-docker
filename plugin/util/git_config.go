@@ -36,6 +36,15 @@ func SetGitConfig(project *types.Project, user string) error {
 
 	cfg.Section("credential").NewKey("helper", "/usr/local/bin/daytona git-cred")
 
+	if project.Repository != nil && project.Repository.GitUserData != nil {
+		if !cfg.HasSection("user") {
+			cfg.NewSection("user")
+		}
+
+		cfg.Section("user").NewKey("name", project.Repository.GitUserData.Name)
+		cfg.Section("user").NewKey("email", project.Repository.GitUserData.Email)
+	}
+
 	var buf bytes.Buffer
 	_, err = cfg.WriteTo(&buf)
 	if err != nil {
