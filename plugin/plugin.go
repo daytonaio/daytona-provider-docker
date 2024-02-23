@@ -11,6 +11,7 @@ import (
 
 	"github.com/daytonaio/daytona/common/types"
 	"github.com/daytonaio/daytona/plugins/provisioner"
+	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 )
@@ -149,6 +150,15 @@ func (p DockerProvisioner) CreateProject(project *types.Project) (*types.Empty, 
 	}
 
 	err = util.WaitForBinaryDownload(project)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
+	_, err = util.ExecSync(util.GetContainerName(project), docker_types.ExecConfig{
+		User:       "daytona",
+		Privileged: true,
+		Cmd:        []string{"sudo", "chown", "-R", "daytona:daytona", "/workspaces"},
+	}, nil)
 	if err != nil {
 		return new(types.Empty), err
 	}
