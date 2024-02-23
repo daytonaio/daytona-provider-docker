@@ -107,32 +107,13 @@ func WaitForBinaryDownload(project *types.Project) error {
 		return err
 	}
 
-	cmd := []string{"stat", "/usr/local/bin/daytona"}
-
 	for {
-		execConfig, err := cli.ContainerExecCreate(ctx, GetContainerName(project), docker_types.ExecConfig{
-			User: "daytona",
-			Cmd:  cmd,
-		})
-		if err != nil {
-			return err
-		}
+		_, err := cli.ContainerStatPath(ctx, GetContainerName(project), "/usr/local/bin/daytona")
 
-		err = cli.ContainerExecStart(ctx, execConfig.ID, docker_types.ExecStartCheck{})
-		if err != nil {
-			return err
-		}
-
-		resp, err := cli.ContainerExecInspect(ctx, execConfig.ID)
-		if err != nil {
-			return err
-		}
-
-		if resp.ExitCode == 0 {
+		if err == nil {
 			break
 		}
 	}
 
 	return nil
-
 }
