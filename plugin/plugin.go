@@ -211,7 +211,14 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 	}
 
 	if info == nil || info.State == nil {
-		return nil, errors.New("could not get container state")
+		return &types.ProjectInfo{
+			Name:                project.Name,
+			IsRunning:           isRunning,
+			Created:             "",
+			Started:             "",
+			Finished:            "",
+			ProvisionerMetadata: "{\"state\": \"container not found\"}",
+		}, nil
 	}
 
 	projectInfo := &types.ProjectInfo{
