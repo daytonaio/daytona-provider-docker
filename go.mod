@@ -1,9 +1,9 @@
-module provisioner_plugin
+module provider
 
 go 1.21.6
 
 require (
-	github.com/daytonaio/daytona v0.0.1-alpha.26
+	github.com/daytonaio/daytona v0.0.1-alpha.27
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-plugin v1.6.0
@@ -26,6 +26,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77 // indirect
 	github.com/moby/term v0.5.0 // indirect
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect

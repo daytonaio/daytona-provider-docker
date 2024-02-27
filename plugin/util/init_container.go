@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/daytonaio/daytona/common/types"
+	"github.com/daytonaio/daytona/pkg/types"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"

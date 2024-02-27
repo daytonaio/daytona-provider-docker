@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BUCKET_NAME: daytona-workspace-tools/daytona/plugins/docker-provisioner
+  BUCKET_NAME: daytona-workspace-tools/daytona/providers/docker-provider
 
 jobs:
   binary-build-and-publish:
@@ -56,7 +56,7 @@ jobs:
         run: git config --global url."https://daytonaBot:${{ secrets.GITHUBBOT_TOKEN }}@github.com/daytonaio/daytona".insteadOf "https://github.com/daytonaio/daytona"
 
       - name: Build binaries
-        run: GOPRIVATE=github.com/daytonaio/daytona GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o docker-provisioner-${{ matrix.goos }}-${{ matrix.goarch }}
+        run: GOPRIVATE=github.com/daytonaio/daytona GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o docker-provider-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -66,4 +66,4 @@ jobs:
 
       - name: Copy binaries to s3
         run: |
-          aws s3 cp docker-provisioner-* s3://${{ env.BUCKET_NAME }}/latest/
+          aws s3 cp docker-provider-* s3://${{ env.BUCKET_NAME }}/latest/
