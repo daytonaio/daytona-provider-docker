@@ -1,2 +1,2 @@
-# daytona-docker-provisioner-plugin
-The Docker provisioner plugin for Daytona
+# daytona-docker-provider
+The Docker Provider for Daytona

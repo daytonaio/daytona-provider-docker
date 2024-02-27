@@ -6,16 +6,16 @@ import (
 	"os"
 	"path"
 
-	"provisioner_plugin/plugin/util"
+	"provider/plugin/util"
 
-	"github.com/daytonaio/daytona/common/types"
-	"github.com/daytonaio/daytona/plugins/provisioner"
+	"github.com/daytonaio/daytona/pkg/provider"
+	"github.com/daytonaio/daytona/pkg/types"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 )
 
-type DockerProvisioner struct {
+type DockerProvider struct {
 	BasePath          *string
 	ServerDownloadUrl *string
 	ServerVersion     *string
@@ -27,7 +27,7 @@ type workspaceMetadata struct {
 	NetworkId string
 }
 
-func (p *DockerProvisioner) Initialize(req provisioner.InitializeProvisionerRequest) (*types.Empty, error) {
+func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*types.Empty, error) {
 	p.BasePath = &req.BasePath
 	p.ServerDownloadUrl = &req.ServerDownloadUrl
 	p.ServerVersion = &req.ServerVersion
@@ -36,35 +36,35 @@ func (p *DockerProvisioner) Initialize(req provisioner.InitializeProvisionerRequ
 	return new(types.Empty), nil
 }
 
-func (p DockerProvisioner) GetInfo() (provisioner.ProvisionerInfo, error) {
-	return provisioner.ProvisionerInfo{
-		Name:    "docker-provisioner",
+func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
+	return provider.ProviderInfo{
+		Name:    "docker-provider",
 		Version: "0.0.1",
 	}, nil
 }
 
-func (p DockerProvisioner) Configure() (interface{}, error) {
+func (p DockerProvider) Configure() (interface{}, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (p DockerProvisioner) getProjectPath(basePath string, project *types.Project) string {
+func (p DockerProvider) getProjectPath(basePath string, project *types.Project) string {
 	return path.Join(basePath, "workspaces", project.WorkspaceId, "projects", project.Name)
 }
 
-func (p DockerProvisioner) CreateWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+func (p DockerProvider) CreateWorkspace(workspace *types.Workspace) (*types.Empty, error) {
 	err := util.CreateNetwork(workspace.Id)
 	return new(types.Empty), err
 }
 
-func (p DockerProvisioner) StartWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+func (p DockerProvider) StartWorkspace(workspace *types.Workspace) (*types.Empty, error) {
 	return new(types.Empty), nil
 }
 
-func (p DockerProvisioner) StopWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+func (p DockerProvider) StopWorkspace(workspace *types.Workspace) (*types.Empty, error) {
 	return new(types.Empty), nil
 }
 
-func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+func (p DockerProvider) DestroyWorkspace(workspace *types.Workspace) (*types.Empty, error) {
 	if p.BasePath == nil {
 		return new(types.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
 	}
@@ -77,15 +77,15 @@ func (p DockerProvisioner) DestroyWorkspace(workspace *types.Workspace) (*types.
 	return new(types.Empty), util.RemoveNetwork(workspace.Id)
 }
 
-func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
-	provisionerMetadata, err := p.getWorkspaceMetadata(workspace)
+func (p DockerProvider) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
+	providerMetadata, err := p.getWorkspaceMetadata(workspace)
 	if err != nil {
 		return nil, err
 	}
 
 	workspaceInfo := &types.WorkspaceInfo{
-		Name:                workspace.Name,
-		ProvisionerMetadata: provisionerMetadata,
+		Name:             workspace.Name,
+		ProviderMetadata: providerMetadata,
 	}
 
 	projectInfos := []*types.ProjectInfo{}
@@ -101,7 +101,7 @@ func (p DockerProvisioner) GetWorkspaceInfo(workspace *types.Workspace) (*types.
 	return workspaceInfo, nil
 }
 
-func (p DockerProvisioner) CreateProject(project *types.Project) (*types.Empty, error) {
+func (p DockerProvider) CreateProject(project *types.Project) (*types.Empty, error) {
 	log.Info("Initializing project: ", project.Name)
 
 	if p.ServerDownloadUrl == nil {
@@ -170,17 +170,17 @@ func (p DockerProvisioner) CreateProject(project *types.Project) (*types.Empty, 
 	return new(types.Empty), nil
 }
 
-func (p DockerProvisioner) StartProject(project *types.Project) (*types.Empty, error) {
+func (p DockerProvider) StartProject(project *types.Project) (*types.Empty, error) {
 	err := util.StartContainer(project)
 	return new(types.Empty), err
 }
 
-func (p DockerProvisioner) StopProject(project *types.Project) (*types.Empty, error) {
+func (p DockerProvider) StopProject(project *types.Project) (*types.Empty, error) {
 	err := util.StopContainer(project)
 	return new(types.Empty), err
 }
 
-func (p DockerProvisioner) DestroyProject(project *types.Project) (*types.Empty, error) {
+func (p DockerProvider) DestroyProject(project *types.Project) (*types.Empty, error) {
 	err := util.RemoveContainer(project)
 	if err != nil {
 		return new(types.Empty), err
@@ -198,7 +198,7 @@ func (p DockerProvisioner) DestroyProject(project *types.Project) (*types.Empty,
 	return new(types.Empty), nil
 }
 
-func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.ProjectInfo, error) {
+func (p DockerProvider) GetProjectInfo(project *types.Project) (*types.ProjectInfo, error) {
 	isRunning := true
 	info, err := util.GetContainerInfo(project)
 	if err != nil {
@@ -212,12 +212,12 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 
 	if info == nil || info.State == nil {
 		return &types.ProjectInfo{
-			Name:                project.Name,
-			IsRunning:           isRunning,
-			Created:             "",
-			Started:             "",
-			Finished:            "",
-			ProvisionerMetadata: "{\"state\": \"container not found\"}",
+			Name:             project.Name,
+			IsRunning:        isRunning,
+			Created:          "",
+			Started:          "",
+			Finished:         "",
+			ProviderMetadata: "{\"state\": \"container not found\"}",
 		}, nil
 	}
 
@@ -234,7 +234,7 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 		if err != nil {
 			return nil, err
 		}
-		projectInfo.ProvisionerMetadata = string(metadata)
+		projectInfo.ProviderMetadata = string(metadata)
 	} else {
 		log.Warn("Could not get container labels for project: ", project.Name)
 	}
@@ -242,7 +242,7 @@ func (p DockerProvisioner) GetProjectInfo(project *types.Project) (*types.Projec
 	return projectInfo, nil
 }
 
-func (p DockerProvisioner) getWorkspaceMetadata(workspace *types.Workspace) (string, error) {
+func (p DockerProvider) getWorkspaceMetadata(workspace *types.Workspace) (string, error) {
 	metadata := workspaceMetadata{
 		NetworkId: workspace.Id,
 	}

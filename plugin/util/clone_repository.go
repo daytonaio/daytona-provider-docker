@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/daytonaio/daytona/common/types"
+	"github.com/daytonaio/daytona/pkg/types"
 	docker_types "github.com/docker/docker/api/types"
 	log "github.com/sirupsen/logrus"
 )
