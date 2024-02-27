@@ -3,12 +3,12 @@ package main
 import (
 	"os"
 
-	"github.com/daytonaio/daytona/plugins/provisioner"
-	provisioner_manager "github.com/daytonaio/daytona/plugins/provisioner/manager"
+	"github.com/daytonaio/daytona/pkg/provider"
+	"github.com/daytonaio/daytona/pkg/provider/manager"
 	"github.com/hashicorp/go-hclog"
 	hc_plugin "github.com/hashicorp/go-plugin"
 
-	"provisioner_plugin/plugin"
+	"provider/plugin"
 )
 
 func main() {
@@ -18,9 +18,9 @@ func main() {
 		JSONFormat: true,
 	})
 	hc_plugin.Serve(&hc_plugin.ServeConfig{
-		HandshakeConfig: provisioner_manager.ProvisionerHandshakeConfig,
+		HandshakeConfig: manager.ProviderHandshakeConfig,
 		Plugins: map[string]hc_plugin.Plugin{
-			"docker-provisioner": &provisioner.ProvisionerPlugin{Impl: &plugin.DockerProvisioner{}},
+			"docker-provider": &provider.ProviderPlugin{Impl: &plugin.DockerProvider{}},
 		},
 		Logger: logger,
 	})

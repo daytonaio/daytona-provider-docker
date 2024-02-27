@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"path"
 
-	"github.com/daytonaio/daytona/common/types"
+	"github.com/daytonaio/daytona/pkg/types"
 	"gopkg.in/ini.v1"
 )
 
