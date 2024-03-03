@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path"
 	"strings"
 
 	"github.com/daytonaio/daytona/pkg/types"
@@ -62,7 +63,7 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 
 	envVars := []string{
 		"DAYTONA_WS_ID=" + project.WorkspaceId,
-		"DAYTONA_WS_DIR=" + project.Name,
+		"DAYTONA_WS_DIR=" + path.Join("/workspaces", project.Name),
 		"DAYTONA_WS_PROJECT_NAME=" + project.Name,
 		"DAYTONA_WS_PROJECT_REPOSITORY_URL=" + project.Repository.Url,
 		"DAYTONA_SERVER_API_KEY=" + project.ApiKey,
