@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	hc_plugin "github.com/hashicorp/go-plugin"
 
-	"provider/plugin"
+	p "provider/pkg/provider"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 	hc_plugin.Serve(&hc_plugin.ServeConfig{
 		HandshakeConfig: manager.ProviderHandshakeConfig,
 		Plugins: map[string]hc_plugin.Plugin{
-			"docker-provider": &provider.ProviderPlugin{Impl: &plugin.DockerProvider{}},
+			"docker-provider": &provider.ProviderPlugin{Impl: &p.DockerProvider{}},
 		},
 		Logger: logger,
 	})

@@ -1,17 +1,18 @@
-package plugin
+package provider
 
 import (
 	"encoding/json"
 	"errors"
 	"os"
 	"path"
-
-	"provider/plugin/util"
+	"provider/pkg/client"
+	"provider/pkg/provider/util"
+	provider_types "provider/pkg/types"
 
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/types"
 	docker_types "github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	docker_client "github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,7 +34,8 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*ty
 	p.ServerVersion = &req.ServerVersion
 	p.ServerUrl = &req.ServerUrl
 	p.ServerApiUrl = &req.ServerApiUrl
-	return new(types.Empty), nil
+
+	return new(types.Empty), InitializeTargets(*p.BasePath)
 }
 
 func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
@@ -43,8 +45,44 @@ func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
 	}, nil
 }
 
-func (p DockerProvider) Configure() (interface{}, error) {
-	return nil, errors.New("not implemented")
+func (p DockerProvider) GetTargets() (*[]provider.ProviderTarget, error) {
+	targets, err := GetTargets(*p.BasePath)
+	if err != nil {
+		return nil, err
+	}
+
+	list := []provider.ProviderTarget{}
+	for _, target := range targets {
+		list = append(list, target)
+	}
+	return &list, nil
+}
+
+func (p DockerProvider) GetTargetManifest() (*provider.ProviderTargetManifest, error) {
+	return provider_types.GetTargetManifest(), nil
+}
+
+func (p DockerProvider) SetTarget(target provider.ProviderTarget) (*types.Empty, error) {
+	targets, err := GetTargets(*p.BasePath)
+	if err != nil {
+		return nil, err
+	}
+	targets[target.Name] = target
+	SetTargets(*p.BasePath, targets)
+	return new(types.Empty), nil
+}
+
+func (p DockerProvider) RemoveTarget(name string) (*types.Empty, error) {
+	if name == "local" {
+		return new(types.Empty), errors.New("cannot remove 'local' target")
+	}
+	targets, err := GetTargets(*p.BasePath)
+	if err != nil {
+		return nil, err
+	}
+	delete(targets, name)
+	SetTargets(*p.BasePath, targets)
+	return new(types.Empty), nil
 }
 
 func (p DockerProvider) getProjectPath(basePath string, project *types.Project) string {
@@ -52,7 +90,12 @@ func (p DockerProvider) getProjectPath(basePath string, project *types.Project) 
 }
 
 func (p DockerProvider) CreateWorkspace(workspace *types.Workspace) (*types.Empty, error) {
-	err := util.CreateNetwork(workspace.Id)
+	client, err := p.getClient(workspace.ProviderTarget.Target)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
+	err = util.CreateNetwork(client, workspace.Id)
 	return new(types.Empty), err
 }
 
@@ -74,7 +117,12 @@ func (p DockerProvider) DestroyWorkspace(workspace *types.Workspace) (*types.Emp
 		return new(types.Empty), err
 	}
 
-	return new(types.Empty), util.RemoveNetwork(workspace.Id)
+	client, err := p.getClient(workspace.ProviderTarget.Target)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
+	return new(types.Empty), util.RemoveNetwork(client, workspace.Id)
 }
 
 func (p DockerProvider) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
@@ -125,35 +173,54 @@ func (p DockerProvider) CreateProject(project *types.Project) (*types.Empty, err
 		serverVersion = *p.ServerVersion
 	}
 
+	targets, err := GetTargets(*p.BasePath)
+	if err != nil {
+		return nil, err
+	}
+
+	target, ok := targets[project.ProviderTarget.Target]
+	if !ok {
+		return nil, errors.New("target not found")
+	}
+	targetOptions, err := provider_types.GetTargetOptions(target)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
+	client, err := p.getClient(project.ProviderTarget.Target)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
 	clonePath := p.getProjectPath(*p.BasePath, project)
 
-	err := os.MkdirAll(clonePath, 0755)
+	err = os.MkdirAll(clonePath, 0755)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
 	// TODO: Project image from config
-	err = util.InitContainer(project, clonePath, "daytonaio/workspace-project", *p.ServerDownloadUrl, serverVersion, *p.ServerUrl, *p.ServerApiUrl)
+	err = util.InitContainer(client, project, clonePath, targetOptions.ContainerImage, *p.ServerDownloadUrl, serverVersion, *p.ServerUrl, *p.ServerApiUrl)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.StartContainer(project)
+	err = util.StartContainer(client, project)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.SetGitConfig(project, "daytona")
+	err = util.SetGitConfig(client, project, "daytona")
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.WaitForBinaryDownload(project)
+	err = util.WaitForBinaryDownload(client, project)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	_, err = util.ExecSync(util.GetContainerName(project), docker_types.ExecConfig{
+	_, err = util.ExecSync(client, util.GetContainerName(project), docker_types.ExecConfig{
 		User:       "daytona",
 		Privileged: true,
 		Cmd:        []string{"sudo", "chown", "-R", "daytona:daytona", "/workspaces"},
@@ -162,7 +229,7 @@ func (p DockerProvider) CreateProject(project *types.Project) (*types.Empty, err
 		return new(types.Empty), err
 	}
 
-	err = util.CloneRepository(project, path.Join("/workspaces", project.Name))
+	err = util.CloneRepository(client, project, path.Join("/workspaces", project.Name))
 	if err != nil {
 		return new(types.Empty), err
 	}
@@ -171,17 +238,32 @@ func (p DockerProvider) CreateProject(project *types.Project) (*types.Empty, err
 }
 
 func (p DockerProvider) StartProject(project *types.Project) (*types.Empty, error) {
-	err := util.StartContainer(project)
+	client, err := p.getClient(project.ProviderTarget.Target)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
+	err = util.StartContainer(client, project)
 	return new(types.Empty), err
 }
 
 func (p DockerProvider) StopProject(project *types.Project) (*types.Empty, error) {
-	err := util.StopContainer(project)
+	client, err := p.getClient(project.ProviderTarget.Target)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
+	err = util.StopContainer(client, project)
 	return new(types.Empty), err
 }
 
 func (p DockerProvider) DestroyProject(project *types.Project) (*types.Empty, error) {
-	err := util.RemoveContainer(project)
+	client, err := p.getClient(project.ProviderTarget.Target)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
+	err = util.RemoveContainer(client, project)
 	if err != nil {
 		return new(types.Empty), err
 	}
@@ -199,10 +281,15 @@ func (p DockerProvider) DestroyProject(project *types.Project) (*types.Empty, er
 }
 
 func (p DockerProvider) GetProjectInfo(project *types.Project) (*types.ProjectInfo, error) {
-	isRunning := true
-	info, err := util.GetContainerInfo(project)
+	client, err := p.getClient(project.ProviderTarget.Target)
 	if err != nil {
-		if client.IsErrNotFound(err) {
+		return nil, err
+	}
+
+	isRunning := true
+	info, err := util.GetContainerInfo(client, project)
+	if err != nil {
+		if docker_client.IsErrNotFound(err) {
 			log.Debug("Container not found, project is not running")
 			isRunning = false
 		} else {
@@ -253,4 +340,22 @@ func (p DockerProvider) getWorkspaceMetadata(workspace *types.Workspace) (string
 	}
 
 	return string(jsonContent), nil
+}
+
+func (p DockerProvider) getClient(targetName string) (*docker_client.Client, error) {
+	if p.BasePath == nil {
+		return nil, errors.New("BasePath not set. Did you forget to call Initialize?")
+	}
+
+	targets, err := GetTargets(*p.BasePath)
+	if err != nil {
+		return nil, err
+	}
+
+	target, ok := targets[targetName]
+	if !ok {
+		return nil, errors.New("target not found")
+	}
+
+	return client.GetClient(target, *p.BasePath)
 }
