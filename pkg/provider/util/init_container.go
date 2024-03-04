@@ -16,15 +16,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitContainer(project *types.Project, workdirPath, imageName, serverDownloadUrl, serverVersion, serverUrl, serverApiUrl string) error {
+func InitContainer(client *client.Client, project *types.Project, workdirPath, imageName, serverDownloadUrl, serverVersion, serverUrl, serverApiUrl string) error {
 	ctx := context.Background()
 
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return err
-	}
-
-	images, err := cli.ImageList(ctx, docker_types.ImageListOptions{})
+	images, err := client.ImageList(ctx, docker_types.ImageListOptions{})
 	if err != nil {
 		return err
 	}
@@ -41,7 +36,7 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 
 	if !found {
 		log.Info("Image not found, pulling...")
-		responseBody, err := cli.ImagePull(ctx, imageName, docker_types.ImagePullOptions{})
+		responseBody, err := client.ImagePull(ctx, imageName, docker_types.ImagePullOptions{})
 		if err != nil {
 			return err
 		}
@@ -72,7 +67,7 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 		"DAYTONA_SERVER_API_URL=" + serverApiUrl,
 	}
 
-	_, err = cli.ContainerCreate(ctx, &container.Config{
+	_, err = client.ContainerCreate(ctx, &container.Config{
 		Hostname: project.Name,
 		Image:    imageName,
 		Labels: map[string]string{
@@ -100,16 +95,11 @@ func InitContainer(project *types.Project, workdirPath, imageName, serverDownloa
 	return nil
 }
 
-func WaitForBinaryDownload(project *types.Project) error {
+func WaitForBinaryDownload(client *client.Client, project *types.Project) error {
 	ctx := context.Background()
 
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return err
-	}
-
 	for {
-		_, err := cli.ContainerStatPath(ctx, GetContainerName(project), "/usr/local/bin/daytona")
+		_, err := client.ContainerStatPath(ctx, GetContainerName(project), "/usr/local/bin/daytona")
 
 		if err == nil {
 			break
