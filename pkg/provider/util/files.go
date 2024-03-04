@@ -14,23 +14,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func FileExists(containerId string, user string, dstFilePath string) (bool, error) {
-	cli, err := client.NewClientWithOpts()
-	if err != nil {
-		return false, err
-	}
-
+func FileExists(client *client.Client, containerId string, user string, dstFilePath string) (bool, error) {
 	execConfig := types.ExecConfig{
 		Cmd:  []string{"stat", dstFilePath},
 		User: user,
 	}
 
-	resp, err := cli.ContainerExecCreate(context.Background(), containerId, execConfig)
+	resp, err := client.ContainerExecCreate(context.Background(), containerId, execConfig)
 	if err != nil {
 		return false, err
 	}
 
-	attachResp, err := cli.ContainerExecAttach(context.Background(), resp.ID, types.ExecStartCheck{})
+	attachResp, err := client.ContainerExecAttach(context.Background(), resp.ID, types.ExecStartCheck{})
 	if err != nil {
 		return false, nil
 	}
@@ -39,16 +34,11 @@ func FileExists(containerId string, user string, dstFilePath string) (bool, erro
 	return true, nil
 }
 
-func ReadFile(containerId string, user string, dstFilePath string) ([]byte, error) {
-	cli, err := client.NewClientWithOpts()
-	if err != nil {
-		return nil, err
-	}
-
+func ReadFile(client *client.Client, containerId string, user string, dstFilePath string) ([]byte, error) {
 	ctx := context.Background()
 
 	// Open a connection to the container
-	reader, _, err := cli.CopyFromContainer(ctx, containerId, dstFilePath)
+	reader, _, err := client.CopyFromContainer(ctx, containerId, dstFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -77,10 +67,10 @@ func ReadFile(containerId string, user string, dstFilePath string) ([]byte, erro
 	return content.Bytes(), nil
 }
 
-func WriteFile(containerId string, user string, dstFilePath string, content string) error {
+func WriteFile(client *client.Client, containerId string, user string, dstFilePath string, content string) error {
 	dir := filepath.Dir(dstFilePath)
 
-	_, err := ExecSync(containerId, types.ExecConfig{
+	_, err := ExecSync(client, containerId, types.ExecConfig{
 		Cmd:  []string{"mkdir", "-p", dir},
 		User: user,
 	}, nil)
@@ -112,29 +102,17 @@ func WriteFile(containerId string, user string, dstFilePath string, content stri
 		log.Fatal(err)
 	}
 
-	cli, err := client.NewClientWithOpts()
-	if err != nil {
-		return err
-	}
-
-	err = cli.CopyToContainer(context.Background(), containerId, dir, bufio.NewReader(&buf), types.CopyToContainerOptions{
+	err = client.CopyToContainer(context.Background(), containerId, dir, bufio.NewReader(&buf), types.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: true,
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = ExecSync(containerId, types.ExecConfig{
+	_, err = ExecSync(client, containerId, types.ExecConfig{
 		Cmd:  []string{"chown", user + ":" + user, dstFilePath},
 		User: "root",
 	}, nil)
 
 	return err
-}
-
-func Remove(containerId string, user string, path string) {
-	ExecSync(containerId, types.ExecConfig{
-		Cmd:  []string{"rm", "-rf", path},
-		User: user,
-	}, nil)
 }

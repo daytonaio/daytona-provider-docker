@@ -5,14 +5,15 @@ import (
 	"path"
 
 	"github.com/daytonaio/daytona/pkg/types"
+	"github.com/docker/docker/client"
 	"gopkg.in/ini.v1"
 )
 
 // TODO: Move this to the daytona repo and import it from there
-func SetGitConfig(project *types.Project, user string) error {
+func SetGitConfig(client *client.Client, project *types.Project, user string) error {
 	containerId := GetContainerName(project)
 
-	homePath, err := GetHomeDirectory(containerId, user)
+	homePath, err := GetHomeDirectory(client, containerId, user)
 	if err != nil {
 		return err
 	}
@@ -20,7 +21,7 @@ func SetGitConfig(project *types.Project, user string) error {
 	gitConfigFileName := path.Join(*homePath, ".gitconfig")
 
 	var gitConfigContent []byte
-	gitConfigContent, err = ReadFile(containerId, user, gitConfigFileName)
+	gitConfigContent, err = ReadFile(client, containerId, user, gitConfigFileName)
 	if err != nil {
 		gitConfigContent = []byte{}
 	}
@@ -51,7 +52,7 @@ func SetGitConfig(project *types.Project, user string) error {
 		return err
 	}
 
-	err = WriteFile(containerId, user, gitConfigFileName, buf.String())
+	err = WriteFile(client, containerId, user, gitConfigFileName, buf.String())
 
 	if err != nil {
 		return err

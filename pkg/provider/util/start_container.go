@@ -9,16 +9,11 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func StartContainer(project *types.Project) error {
+func StartContainer(client *client.Client, project *types.Project) error {
 	containerName := GetContainerName(project)
 	ctx := context.Background()
 
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return err
-	}
-
-	err = cli.ContainerStart(ctx, containerName, docker_types.ContainerStartOptions{})
+	err := client.ContainerStart(ctx, containerName, docker_types.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -26,7 +21,7 @@ func StartContainer(project *types.Project) error {
 	// make sure container is running
 	//	TODO: timeout
 	for {
-		inspect, err := cli.ContainerInspect(ctx, containerName)
+		inspect, err := client.ContainerInspect(ctx, containerName)
 		if err != nil {
 			return err
 		}
@@ -46,12 +41,12 @@ func StartContainer(project *types.Project) error {
 		Cmd:          []string{"dockerd"},
 		User:         "root",
 	}
-	execResp, err := cli.ContainerExecCreate(ctx, containerName, execConfig)
+	execResp, err := client.ContainerExecCreate(ctx, containerName, execConfig)
 	if err != nil {
 		return err
 	}
 
-	err = cli.ContainerExecStart(ctx, execResp.ID, docker_types.ExecStartCheck{})
+	err = client.ContainerExecStart(ctx, execResp.ID, docker_types.ExecStartCheck{})
 	if err != nil {
 		return err
 	}

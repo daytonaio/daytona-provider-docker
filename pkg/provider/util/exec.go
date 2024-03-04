@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -17,7 +16,7 @@ type ExecResult struct {
 	ExitCode int
 }
 
-func ExecSync(containerID string, config types.ExecConfig, outputWriter *io.Writer) (*ExecResult, error) {
+func ExecSync(client *client.Client, containerID string, config types.ExecConfig, outputWriter *io.Writer) (*ExecResult, error) {
 	ctx := context.Background()
 
 	config.AttachStderr = true
@@ -26,29 +25,20 @@ func ExecSync(containerID string, config types.ExecConfig, outputWriter *io.Writ
 
 	config.Env = append(config.Env, "DEBIAN_FRONTEND=noninteractive")
 
-	cli, err := client.NewClientWithOpts()
+	response, err := client.ContainerExecCreate(ctx, containerID, config)
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := cli.ContainerExecCreate(ctx, containerID, config)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := InspectExecResp(ctx, response.ID, outputWriter)
+	result, err := InspectExecResp(client, ctx, response.ID, outputWriter)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func InspectExecResp(ctx context.Context, id string, outputWriter *io.Writer) (*ExecResult, error) {
-	cli, err := client.NewClientWithOpts()
-	if err != nil {
-		return nil, err
-	}
-	resp, err := cli.ContainerExecAttach(ctx, id, types.ExecStartCheck{})
+func InspectExecResp(client *client.Client, ctx context.Context, id string, outputWriter *io.Writer) (*ExecResult, error) {
+	resp, err := client.ContainerExecAttach(ctx, id, types.ExecStartCheck{})
 	if err != nil {
 		return nil, err
 	}
@@ -85,16 +75,16 @@ func InspectExecResp(ctx context.Context, id string, outputWriter *io.Writer) (*
 		return nil, ctx.Err()
 	}
 
-	stdout, err := ioutil.ReadAll(&outBuf)
+	stdout, err := io.ReadAll(&outBuf)
 	if err != nil {
 		return nil, err
 	}
-	stderr, err := ioutil.ReadAll(&errBuf)
+	stderr, err := io.ReadAll(&errBuf)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := cli.ContainerExecInspect(ctx, id)
+	res, err := client.ContainerExecInspect(ctx, id)
 	if err != nil {
 		return nil, err
 	}
