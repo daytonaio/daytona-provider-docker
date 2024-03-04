@@ -8,16 +8,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CreateNetwork(workspaceId string) error {
+func CreateNetwork(client *client.Client, workspaceId string) error {
 	log.Debug("Initializing network")
 	ctx := context.Background()
 
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return err
-	}
-
-	networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
+	networks, err := client.NetworkList(ctx, types.NetworkListOptions{})
 	if err != nil {
 		return err
 	}
@@ -31,7 +26,7 @@ func CreateNetwork(workspaceId string) error {
 		}
 	}
 
-	_, err = cli.NetworkCreate(ctx, workspaceId, types.NetworkCreate{
+	_, err = client.NetworkCreate(ctx, workspaceId, types.NetworkCreate{
 		Attachable: true,
 	})
 	if err != nil {
