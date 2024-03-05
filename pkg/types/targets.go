@@ -46,9 +46,9 @@ func GetTargetManifest() *provider.ProviderTargetManifest {
 	}
 }
 
-func GetTargetOptions(target provider.ProviderTarget) (*TargetOptions, error) {
+func ParseTargetOptions(optionsJson string) (*TargetOptions, error) {
 	var targetOptions TargetOptions
-	err := json.Unmarshal([]byte(target.Options), &targetOptions)
+	err := json.Unmarshal([]byte(optionsJson), &targetOptions)
 	if err != nil {
 		return nil, err
 	}
