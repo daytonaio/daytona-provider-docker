@@ -35,7 +35,7 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*ty
 	p.ServerUrl = &req.ServerUrl
 	p.ServerApiUrl = &req.ServerApiUrl
 
-	return new(types.Empty), InitializeTargets(*p.BasePath)
+	return new(types.Empty), nil
 }
 
 func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
@@ -45,100 +45,83 @@ func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
 	}, nil
 }
 
-func (p DockerProvider) GetTargets() (*[]provider.ProviderTarget, error) {
-	targets, err := GetTargets(*p.BasePath)
-	if err != nil {
-		return nil, err
-	}
-
-	list := []provider.ProviderTarget{}
-	for _, target := range targets {
-		list = append(list, target)
-	}
-	return &list, nil
-}
-
 func (p DockerProvider) GetTargetManifest() (*provider.ProviderTargetManifest, error) {
 	return provider_types.GetTargetManifest(), nil
 }
 
-func (p DockerProvider) SetTarget(target provider.ProviderTarget) (*types.Empty, error) {
-	targets, err := GetTargets(*p.BasePath)
+func (p DockerProvider) GetDefaultTargets() (*[]provider.ProviderTarget, error) {
+	info, err := p.GetInfo()
 	if err != nil {
 		return nil, err
 	}
-	targets[target.Name] = target
-	SetTargets(*p.BasePath, targets)
-	return new(types.Empty), nil
-}
 
-func (p DockerProvider) RemoveTarget(name string) (*types.Empty, error) {
-	if name == "local" {
-		return new(types.Empty), errors.New("cannot remove 'local' target")
+	defaultTargets := []provider.ProviderTarget{
+		{
+			Name:         "local",
+			ProviderInfo: info,
+			Options:      "{\"Container Image\": \"daytonaio/workspace-project\"}",
+		},
 	}
-	targets, err := GetTargets(*p.BasePath)
-	if err != nil {
-		return nil, err
-	}
-	delete(targets, name)
-	SetTargets(*p.BasePath, targets)
-	return new(types.Empty), nil
+	return &defaultTargets, nil
 }
 
 func (p DockerProvider) getProjectPath(basePath string, project *types.Project) string {
 	return path.Join(basePath, "workspaces", project.WorkspaceId, "projects", project.Name)
 }
 
-func (p DockerProvider) CreateWorkspace(workspace *types.Workspace) (*types.Empty, error) {
-	client, err := p.getClient(workspace.ProviderTarget.Target)
+func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest) (*types.Empty, error) {
+	client, err := p.getClient(workspaceReq.TargetOptions)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.CreateNetwork(client, workspace.Id)
+	err = util.CreateNetwork(client, workspaceReq.Workspace.Id)
 	return new(types.Empty), err
 }
 
-func (p DockerProvider) StartWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*types.Empty, error) {
 	return new(types.Empty), nil
 }
 
-func (p DockerProvider) StopWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (*types.Empty, error) {
 	return new(types.Empty), nil
 }
 
-func (p DockerProvider) DestroyWorkspace(workspace *types.Workspace) (*types.Empty, error) {
+func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest) (*types.Empty, error) {
 	if p.BasePath == nil {
 		return new(types.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
 	}
 
-	err := os.RemoveAll(path.Join(*p.BasePath, "workspaces", workspace.Id))
+	err := os.RemoveAll(path.Join(*p.BasePath, "workspaces", workspaceReq.Workspace.Id))
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	client, err := p.getClient(workspace.ProviderTarget.Target)
+	client, err := p.getClient(workspaceReq.TargetOptions)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	return new(types.Empty), util.RemoveNetwork(client, workspace.Id)
+	return new(types.Empty), util.RemoveNetwork(client, workspaceReq.Workspace.Id)
 }
 
-func (p DockerProvider) GetWorkspaceInfo(workspace *types.Workspace) (*types.WorkspaceInfo, error) {
-	providerMetadata, err := p.getWorkspaceMetadata(workspace)
+func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*types.WorkspaceInfo, error) {
+	providerMetadata, err := p.getWorkspaceMetadata(workspaceReq)
 	if err != nil {
 		return nil, err
 	}
 
 	workspaceInfo := &types.WorkspaceInfo{
-		Name:             workspace.Name,
+		Name:             workspaceReq.Workspace.Name,
 		ProviderMetadata: providerMetadata,
 	}
 
 	projectInfos := []*types.ProjectInfo{}
-	for _, project := range workspace.Projects {
-		projectInfo, err := p.GetProjectInfo(project)
+	for _, project := range workspaceReq.Workspace.Projects {
+		projectInfo, err := p.GetProjectInfo(&provider.ProjectRequest{
+			TargetOptions: workspaceReq.TargetOptions,
+			Project:       project,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -149,8 +132,13 @@ func (p DockerProvider) GetWorkspaceInfo(workspace *types.Workspace) (*types.Wor
 	return workspaceInfo, nil
 }
 
-func (p DockerProvider) CreateProject(project *types.Project) (*types.Empty, error) {
-	log.Info("Initializing project: ", project.Name)
+func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*types.Empty, error) {
+	log.Info("Initializing project: ", projectReq.Project.Name)
+
+	targetOptions, err := provider_types.ParseTargetOptions(projectReq.TargetOptions)
+	if err != nil {
+		return new(types.Empty), err
+	}
 
 	if p.ServerDownloadUrl == nil {
 		return new(types.Empty), errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
@@ -173,54 +161,39 @@ func (p DockerProvider) CreateProject(project *types.Project) (*types.Empty, err
 		serverVersion = *p.ServerVersion
 	}
 
-	targets, err := GetTargets(*p.BasePath)
-	if err != nil {
-		return nil, err
-	}
-
-	target, ok := targets[project.ProviderTarget.Target]
-	if !ok {
-		return nil, errors.New("target not found")
-	}
-	targetOptions, err := provider_types.GetTargetOptions(target)
+	client, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	client, err := p.getClient(project.ProviderTarget.Target)
-	if err != nil {
-		return new(types.Empty), err
-	}
-
-	clonePath := p.getProjectPath(*p.BasePath, project)
+	clonePath := p.getProjectPath(*p.BasePath, projectReq.Project)
 
 	err = os.MkdirAll(clonePath, 0755)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	// TODO: Project image from config
-	err = util.InitContainer(client, project, clonePath, targetOptions.ContainerImage, *p.ServerDownloadUrl, serverVersion, *p.ServerUrl, *p.ServerApiUrl)
+	err = util.InitContainer(client, projectReq.Project, clonePath, targetOptions.ContainerImage, *p.ServerDownloadUrl, serverVersion, *p.ServerUrl, *p.ServerApiUrl)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.StartContainer(client, project)
+	err = util.StartContainer(client, projectReq.Project)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.SetGitConfig(client, project, "daytona")
+	err = util.SetGitConfig(client, projectReq.Project, "daytona")
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.WaitForBinaryDownload(client, project)
+	err = util.WaitForBinaryDownload(client, projectReq.Project)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	_, err = util.ExecSync(client, util.GetContainerName(project), docker_types.ExecConfig{
+	_, err = util.ExecSync(client, util.GetContainerName(projectReq.Project), docker_types.ExecConfig{
 		User:       "daytona",
 		Privileged: true,
 		Cmd:        []string{"sudo", "chown", "-R", "daytona:daytona", "/workspaces"},
@@ -229,7 +202,7 @@ func (p DockerProvider) CreateProject(project *types.Project) (*types.Empty, err
 		return new(types.Empty), err
 	}
 
-	err = util.CloneRepository(client, project, path.Join("/workspaces", project.Name))
+	err = util.CloneRepository(client, projectReq.Project, path.Join("/workspaces", projectReq.Project.Name))
 	if err != nil {
 		return new(types.Empty), err
 	}
@@ -237,33 +210,33 @@ func (p DockerProvider) CreateProject(project *types.Project) (*types.Empty, err
 	return new(types.Empty), nil
 }
 
-func (p DockerProvider) StartProject(project *types.Project) (*types.Empty, error) {
-	client, err := p.getClient(project.ProviderTarget.Target)
+func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*types.Empty, error) {
+	client, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.StartContainer(client, project)
+	err = util.StartContainer(client, projectReq.Project)
 	return new(types.Empty), err
 }
 
-func (p DockerProvider) StopProject(project *types.Project) (*types.Empty, error) {
-	client, err := p.getClient(project.ProviderTarget.Target)
+func (p DockerProvider) StopProject(projectReq *provider.ProjectRequest) (*types.Empty, error) {
+	client, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.StopContainer(client, project)
+	err = util.StopContainer(client, projectReq.Project)
 	return new(types.Empty), err
 }
 
-func (p DockerProvider) DestroyProject(project *types.Project) (*types.Empty, error) {
-	client, err := p.getClient(project.ProviderTarget.Target)
+func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*types.Empty, error) {
+	client, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.RemoveContainer(client, project)
+	err = util.RemoveContainer(client, projectReq.Project)
 	if err != nil {
 		return new(types.Empty), err
 	}
@@ -272,7 +245,7 @@ func (p DockerProvider) DestroyProject(project *types.Project) (*types.Empty, er
 		return new(types.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
 	}
 
-	err = os.RemoveAll(p.getProjectPath(*p.BasePath, project))
+	err = os.RemoveAll(p.getProjectPath(*p.BasePath, projectReq.Project))
 	if err != nil {
 		return new(types.Empty), err
 	}
@@ -280,14 +253,14 @@ func (p DockerProvider) DestroyProject(project *types.Project) (*types.Empty, er
 	return new(types.Empty), nil
 }
 
-func (p DockerProvider) GetProjectInfo(project *types.Project) (*types.ProjectInfo, error) {
-	client, err := p.getClient(project.ProviderTarget.Target)
+func (p DockerProvider) GetProjectInfo(projectReq *provider.ProjectRequest) (*types.ProjectInfo, error) {
+	client, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return nil, err
 	}
 
 	isRunning := true
-	info, err := util.GetContainerInfo(client, project)
+	info, err := util.GetContainerInfo(client, projectReq.Project)
 	if err != nil {
 		if docker_client.IsErrNotFound(err) {
 			log.Debug("Container not found, project is not running")
@@ -299,7 +272,7 @@ func (p DockerProvider) GetProjectInfo(project *types.Project) (*types.ProjectIn
 
 	if info == nil || info.State == nil {
 		return &types.ProjectInfo{
-			Name:             project.Name,
+			Name:             projectReq.Project.Name,
 			IsRunning:        isRunning,
 			Created:          "",
 			Started:          "",
@@ -309,7 +282,7 @@ func (p DockerProvider) GetProjectInfo(project *types.Project) (*types.ProjectIn
 	}
 
 	projectInfo := &types.ProjectInfo{
-		Name:      project.Name,
+		Name:      projectReq.Project.Name,
 		IsRunning: isRunning,
 		Created:   info.Created,
 		Started:   info.State.StartedAt,
@@ -323,15 +296,15 @@ func (p DockerProvider) GetProjectInfo(project *types.Project) (*types.ProjectIn
 		}
 		projectInfo.ProviderMetadata = string(metadata)
 	} else {
-		log.Warn("Could not get container labels for project: ", project.Name)
+		log.Warn("Could not get container labels for project: ", projectReq.Project.Name)
 	}
 
 	return projectInfo, nil
 }
 
-func (p DockerProvider) getWorkspaceMetadata(workspace *types.Workspace) (string, error) {
+func (p DockerProvider) getWorkspaceMetadata(workspaceReq *provider.WorkspaceRequest) (string, error) {
 	metadata := workspaceMetadata{
-		NetworkId: workspace.Id,
+		NetworkId: workspaceReq.Workspace.Id,
 	}
 
 	jsonContent, err := json.Marshal(metadata)
@@ -342,20 +315,11 @@ func (p DockerProvider) getWorkspaceMetadata(workspace *types.Workspace) (string
 	return string(jsonContent), nil
 }
 
-func (p DockerProvider) getClient(targetName string) (*docker_client.Client, error) {
-	if p.BasePath == nil {
-		return nil, errors.New("BasePath not set. Did you forget to call Initialize?")
-	}
-
-	targets, err := GetTargets(*p.BasePath)
+func (p DockerProvider) getClient(targetOptionsJson string) (*docker_client.Client, error) {
+	targetOptions, err := provider_types.ParseTargetOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
 	}
 
-	target, ok := targets[targetName]
-	if !ok {
-		return nil, errors.New("target not found")
-	}
-
-	return client.GetClient(target, *p.BasePath)
+	return client.GetClient(*targetOptions, *p.BasePath)
 }
