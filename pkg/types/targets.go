@@ -40,7 +40,8 @@ func GetTargetManifest() *provider.ProviderTargetManifest {
 			InputMasked:       true,
 		},
 		"Remote Private Key Path": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeString,
+			Type:              provider.ProviderTargetPropertyTypeFilePath,
+			DefaultValue:      "~/.ssh",
 			DisabledPredicate: "^local$",
 		},
 	}
