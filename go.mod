@@ -3,7 +3,7 @@ module provider
 go 1.21.6
 
 require (
-	github.com/daytonaio/daytona v0.0.1-target.4
+	github.com/daytonaio/daytona v0.0.1-target.5
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-plugin v1.6.0
