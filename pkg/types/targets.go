@@ -40,15 +40,16 @@ func GetTargetManifest() *provider.ProviderTargetManifest {
 			InputMasked:       true,
 		},
 		"Remote Private Key Path": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeString,
+			Type:              provider.ProviderTargetPropertyTypeFilePath,
+			DefaultValue:      "~/.ssh",
 			DisabledPredicate: "^local$",
 		},
 	}
 }
 
-func GetTargetOptions(target provider.ProviderTarget) (*TargetOptions, error) {
+func ParseTargetOptions(optionsJson string) (*TargetOptions, error) {
 	var targetOptions TargetOptions
-	err := json.Unmarshal([]byte(target.Options), &targetOptions)
+	err := json.Unmarshal([]byte(optionsJson), &targetOptions)
 	if err != nil {
 		return nil, err
 	}
