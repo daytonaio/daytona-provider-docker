@@ -14,10 +14,23 @@ func CloneRepository(client *client.Client, project *types.Project, clonePath st
 		"project": project.Name,
 	}).Info("Cloning repository: " + repo.Url)
 
+	cloneCmd := []string{"git", "clone", repo.Url, clonePath}
+
+	if repo.Branch != "" && repo.Branch != repo.Sha {
+		cloneCmd = append(cloneCmd, "-b", repo.Branch, "--single-branch")
+	}
+
 	_, err := ExecSync(client, GetContainerName(project), docker_types.ExecConfig{
 		User: "daytona",
-		Cmd:  []string{"git", "clone", repo.Url, clonePath},
+		Cmd:  cloneCmd,
 	}, nil)
+
+	if repo.Sha != "" && repo.Branch == repo.Sha {
+		_, err = ExecSync(client, GetContainerName(project), docker_types.ExecConfig{
+			User: "daytona",
+			Cmd:  []string{"git", "checkout", repo.Sha},
+		}, nil)
+	}
 
 	return err
 }
