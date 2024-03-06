@@ -8,6 +8,7 @@ import (
 	"provider/pkg/client"
 	"provider/pkg/provider/util"
 	provider_types "provider/pkg/types"
+	"runtime"
 
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/types"
@@ -22,6 +23,7 @@ type DockerProvider struct {
 	ServerVersion     *string
 	ServerUrl         *string
 	ServerApiUrl      *string
+	RemoteSockDir     string
 }
 
 type workspaceMetadata struct {
@@ -29,6 +31,26 @@ type workspaceMetadata struct {
 }
 
 func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*types.Empty, error) {
+	tmpDir := "/tmp"
+	if runtime.GOOS == "windows" {
+		tmpDir = os.TempDir()
+		if tmpDir == "" {
+			return new(types.Empty), errors.New("could not determine temp dir")
+		}
+	}
+
+	p.RemoteSockDir = path.Join(tmpDir, "target-socks")
+
+	// Clear old sockets
+	err := os.RemoveAll(p.RemoteSockDir)
+	if err != nil {
+		return new(types.Empty), err
+	}
+	err = os.MkdirAll(p.RemoteSockDir, 0755)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
 	p.BasePath = &req.BasePath
 	p.ServerDownloadUrl = &req.ServerDownloadUrl
 	p.ServerVersion = &req.ServerVersion
@@ -321,5 +343,5 @@ func (p DockerProvider) getClient(targetOptionsJson string) (*docker_client.Clie
 		return nil, err
 	}
 
-	return client.GetClient(*targetOptions, *p.BasePath)
+	return client.GetClient(*targetOptions, p.RemoteSockDir)
 }

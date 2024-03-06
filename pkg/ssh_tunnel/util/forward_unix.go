@@ -40,6 +40,8 @@ func ForwardRemoteUnixSock(ctx context.Context, targetOptions types.TargetOption
 		}
 	}
 
+	errChan := make(chan error)
+
 	sshTun.SetTunneledConnState(func(tun *ssh_tunnel.SshTunnel, state *ssh_tunnel.TunneledConnectionState) {
 		log.Debugf("%+v", state)
 	})
@@ -58,7 +60,6 @@ func ForwardRemoteUnixSock(ctx context.Context, targetOptions types.TargetOption
 		}
 	})
 
-	errChan := make(chan error)
 	go func() {
 		errChan <- sshTun.Start(ctx)
 	}()
