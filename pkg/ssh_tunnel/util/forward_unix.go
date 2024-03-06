@@ -26,9 +26,9 @@ func ForwardRemoteUnixSock(ctx context.Context, targetOptions types.TargetOption
 		sshTun.SetUser(*targetOptions.RemoteUser)
 	}
 
-	if targetOptions.RemotePassword != nil {
+	if targetOptions.RemotePassword != nil && *targetOptions.RemotePassword != "" {
 		sshTun.SetPassword(*targetOptions.RemotePassword)
-	} else if targetOptions.RemotePrivateKey != nil {
+	} else if targetOptions.RemotePrivateKey != nil && *targetOptions.RemotePrivateKey != "" {
 		privateKeyPath, password, err := GetSshPrivateKeyPath(*targetOptions.RemotePrivateKey)
 		if err != nil {
 			log.Fatal(err)
