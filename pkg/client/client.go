@@ -7,18 +7,19 @@ import (
 	"path"
 	"provider/pkg/ssh_tunnel/util"
 	"provider/pkg/types"
+	"strings"
 
 	"github.com/docker/docker/client"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func GetClient(targetOptions types.TargetOptions, pluginPath string) (*client.Client, error) {
+func GetClient(targetOptions types.TargetOptions, sockDir string) (*client.Client, error) {
 	if targetOptions.RemoteHostname == nil {
 		return getLocalClient()
 	}
 
-	return getRemoteClient(targetOptions, pluginPath)
+	return getRemoteClient(targetOptions, sockDir)
 }
 
 func getLocalClient() (*client.Client, error) {
@@ -30,8 +31,8 @@ func getLocalClient() (*client.Client, error) {
 	return cli, nil
 }
 
-func getRemoteClient(targetOptions types.TargetOptions, pluginPath string) (*client.Client, error) {
-	localSockPath, err := forwardDockerSock(targetOptions, pluginPath)
+func getRemoteClient(targetOptions types.TargetOptions, sockDir string) (*client.Client, error) {
+	localSockPath, err := forwardDockerSock(targetOptions, sockDir)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +45,15 @@ func getRemoteClient(targetOptions types.TargetOptions, pluginPath string) (*cli
 	return cli, nil
 }
 
-func forwardDockerSock(targetOptions types.TargetOptions, pluginPath string) (string, error) {
-	localSockPath := path.Join(pluginPath, fmt.Sprintf("daytona-%s-docker.sock", *targetOptions.RemoteHostname))
+func forwardDockerSock(targetOptions types.TargetOptions, sockDir string) (string, error) {
+	localSockPath := path.Join(sockDir, fmt.Sprintf("daytona-%s-docker.sock", strings.ReplaceAll(*targetOptions.RemoteHostname, ".", "-")))
+
+	if _, err := os.Stat(path.Dir(localSockPath)); err != nil {
+		err := os.MkdirAll(path.Dir(localSockPath), 0755)
+		if err != nil {
+			return "", err
+		}
+	}
 
 	if _, err := os.Stat(localSockPath); err == nil {
 		return localSockPath, nil
@@ -62,8 +70,9 @@ func forwardDockerSock(targetOptions types.TargetOptions, pluginPath string) (st
 		err := <-errChan
 		if err != nil {
 			log.Error(err)
+			startedChan <- false
+			os.Remove(localSockPath)
 		}
-		os.Remove(localSockPath)
 	}()
 
 	<-startedChan
