@@ -81,7 +81,7 @@ func (p DockerProvider) GetDefaultTargets() (*[]provider.ProviderTarget, error) 
 		{
 			Name:         "local",
 			ProviderInfo: info,
-			Options:      "{\"Container Image\": \"daytonaio/workspace-project\"}",
+			Options:      "{\n\t\"Container Image\": \"daytonaio/workspace-project\",\n\t\"Sock Path\": \"/var/run/docker.sock\"\n}",
 		},
 	}
 	return &defaultTargets, nil
