@@ -16,13 +16,22 @@ import (
 
 func GetClient(targetOptions types.TargetOptions, sockDir string) (*client.Client, error) {
 	if targetOptions.RemoteHostname == nil {
-		return getLocalClient()
+		return getLocalClient(targetOptions)
 	}
 
 	return getRemoteClient(targetOptions, sockDir)
 }
 
-func getLocalClient() (*client.Client, error) {
+func getLocalClient(targetOptions types.TargetOptions) (*client.Client, error) {
+	if targetOptions.SockPath != nil && *targetOptions.SockPath != "" {
+		cli, err := client.NewClientWithOpts(client.WithHost(fmt.Sprintf("unix://%s", *targetOptions.SockPath)), client.WithAPIVersionNegotiation())
+		if err != nil {
+			return nil, err
+		}
+
+		return cli, nil
+	}
+
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return nil, err
@@ -59,11 +68,16 @@ func forwardDockerSock(targetOptions types.TargetOptions, sockDir string) (strin
 		return localSockPath, nil
 	}
 
+	remoteSockPath := "/var/run/docker.sock"
+	if targetOptions.SockPath != nil && *targetOptions.SockPath != "" {
+		remoteSockPath = *targetOptions.SockPath
+	}
+
 	startedChan, errChan := util.ForwardRemoteUnixSock(
 		context.Background(),
 		targetOptions,
 		localSockPath,
-		"/var/run/docker.sock",
+		remoteSockPath,
 	)
 
 	go func() {
