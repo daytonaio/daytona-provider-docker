@@ -13,6 +13,7 @@ type TargetOptions struct {
 	RemoteUser       *string `json:"Remote User,omitempty"`
 	RemotePassword   *string `json:"Remote Password,omitempty"`
 	RemotePrivateKey *string `json:"Remote Private Key Path,omitempty"`
+	SockPath         *string `json:"Sock Path,omitempty"`
 }
 
 func GetTargetManifest() *provider.ProviderTargetManifest {
@@ -43,6 +44,10 @@ func GetTargetManifest() *provider.ProviderTargetManifest {
 			Type:              provider.ProviderTargetPropertyTypeFilePath,
 			DefaultValue:      "~/.ssh",
 			DisabledPredicate: "^local$",
+		},
+		"Sock Path": provider.ProviderTargetProperty{
+			Type:         provider.ProviderTargetPropertyTypeString,
+			DefaultValue: "/var/run/docker.sock",
 		},
 	}
 }
