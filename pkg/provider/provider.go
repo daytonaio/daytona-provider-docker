@@ -97,6 +97,16 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		return new(types.Empty), err
 	}
 
+	targetOptions, err := provider_types.ParseTargetOptions(workspaceReq.TargetOptions)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
+	err = util.PullImage(client, targetOptions.ContainerImage)
+	if err != nil {
+		return new(types.Empty), err
+	}
+
 	err = util.CreateNetwork(client, workspaceReq.Workspace.Id)
 	return new(types.Empty), err
 }

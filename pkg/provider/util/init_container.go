@@ -3,50 +3,16 @@ package util
 import (
 	"context"
 	"fmt"
-	"io"
 	"path"
-	"strings"
 
 	"github.com/daytonaio/daytona/pkg/types"
-	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func InitContainer(client *client.Client, project *types.Project, workdirPath, imageName, serverDownloadUrl, serverVersion, serverUrl, serverApiUrl string) error {
 	ctx := context.Background()
-
-	images, err := client.ImageList(ctx, docker_types.ImageListOptions{})
-	if err != nil {
-		return err
-	}
-
-	found := false
-	for _, image := range images {
-		for _, tag := range image.RepoTags {
-			if strings.HasPrefix(tag, imageName) {
-				found = true
-				break
-			}
-		}
-	}
-
-	if !found {
-		log.Info("Image not found, pulling...")
-		responseBody, err := client.ImagePull(ctx, imageName, docker_types.ImagePullOptions{})
-		if err != nil {
-			return err
-		}
-		defer responseBody.Close()
-		_, err = io.Copy(io.Discard, responseBody)
-		if err != nil {
-			return err
-		}
-		log.Info("Image pulled successfully")
-	}
 
 	mounts := []mount.Mount{
 		{
@@ -67,7 +33,7 @@ func InitContainer(client *client.Client, project *types.Project, workdirPath, i
 		"DAYTONA_SERVER_API_URL=" + serverApiUrl,
 	}
 
-	_, err = client.ContainerCreate(ctx, &container.Config{
+	_, err := client.ContainerCreate(ctx, &container.Config{
 		Hostname: project.Name,
 		Image:    imageName,
 		Labels: map[string]string{
