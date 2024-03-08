@@ -78,7 +78,7 @@ func InitContainer(client *client.Client, project *types.Project, workdirPath, i
 		},
 		User: "daytona",
 		Env:  envVars,
-		Cmd:  []string{"bash", "-c", fmt.Sprintf("curl %s | bash && daytona agent", serverDownloadUrl)},
+		Cmd:  []string{"bash", "-c", fmt.Sprintf("curl -sf -L %s | sudo bash && daytona agent", serverDownloadUrl)},
 	}, &container.HostConfig{
 		Privileged: true,
 		Binds: []string{
