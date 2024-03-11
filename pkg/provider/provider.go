@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"provider/internal"
 	"provider/pkg/client"
 	"provider/pkg/provider/util"
 	provider_types "provider/pkg/types"
@@ -63,7 +64,7 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*ty
 func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
 	return provider.ProviderInfo{
 		Name:    "docker-provider",
-		Version: "v0.0.1",
+		Version: internal.Version,
 	}, nil
 }
 
