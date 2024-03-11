@@ -27,10 +27,6 @@ type DockerProvider struct {
 	RemoteSockDir     string
 }
 
-type workspaceMetadata struct {
-	NetworkId string
-}
-
 func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*types.Empty, error) {
 	tmpDir := "/tmp"
 	if runtime.GOOS == "windows" {
@@ -336,7 +332,7 @@ func (p DockerProvider) GetProjectInfo(projectReq *provider.ProjectRequest) (*ty
 }
 
 func (p DockerProvider) getWorkspaceMetadata(workspaceReq *provider.WorkspaceRequest) (string, error) {
-	metadata := workspaceMetadata{
+	metadata := provider_types.WorkspaceMetadata{
 		NetworkId: workspaceReq.Workspace.Id,
 	}
 
