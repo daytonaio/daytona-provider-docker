@@ -3,15 +3,16 @@ package provider_test
 import (
 	"context"
 	"encoding/json"
-	"provider/pkg/client"
-	"provider/pkg/provider/util"
 	"testing"
+
+	"github.com/daytonaio/daytona-docker-provider/pkg/client"
+	"github.com/daytonaio/daytona-docker-provider/pkg/provider/util"
 
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/types"
 
-	docker_provider "provider/pkg/provider"
-	provider_types "provider/pkg/types"
+	docker_provider "github.com/daytonaio/daytona-docker-provider/pkg/provider"
+	provider_types "github.com/daytonaio/daytona-docker-provider/pkg/types"
 
 	docker_types "github.com/docker/docker/api/types"
 	docker_client "github.com/docker/docker/client"

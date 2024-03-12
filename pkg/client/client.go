@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"provider/pkg/ssh_tunnel/util"
-	"provider/pkg/types"
 	"strings"
+
+	"github.com/daytonaio/daytona-docker-provider/pkg/ssh_tunnel/util"
+	"github.com/daytonaio/daytona-docker-provider/pkg/types"
 
 	"github.com/docker/docker/client"
 
