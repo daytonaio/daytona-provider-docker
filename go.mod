@@ -1,6 +1,6 @@
 module provider
 
-go 1.21.6
+go 1.22.1
 
 require (
 	github.com/daytonaio/daytona v0.1.0
