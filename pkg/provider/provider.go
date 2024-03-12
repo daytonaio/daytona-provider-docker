@@ -5,11 +5,12 @@ import (
 	"errors"
 	"os"
 	"path"
-	"provider/internal"
-	"provider/pkg/client"
-	"provider/pkg/provider/util"
-	provider_types "provider/pkg/types"
 	"runtime"
+
+	internal "github.com/daytonaio/daytona-docker-provider/internal"
+	"github.com/daytonaio/daytona-docker-provider/pkg/client"
+	"github.com/daytonaio/daytona-docker-provider/pkg/provider/util"
+	provider_types "github.com/daytonaio/daytona-docker-provider/pkg/types"
 
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/types"

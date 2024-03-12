@@ -1,4 +1,4 @@
-module provider
+module github.com/daytonaio/daytona-docker-provider
 
 go 1.22.1
 
