@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 
 	"github.com/daytonaio/daytona-docker-provider/pkg/ssh_tunnel/util"
@@ -24,8 +25,13 @@ func GetClient(targetOptions types.TargetOptions, sockDir string) (*client.Clien
 }
 
 func getLocalClient(targetOptions types.TargetOptions) (*client.Client, error) {
-	if targetOptions.SockPath != nil && *targetOptions.SockPath != "" {
-		cli, err := client.NewClientWithOpts(client.WithHost(fmt.Sprintf("unix://%s", *targetOptions.SockPath)), client.WithAPIVersionNegotiation())
+	schema := "unix://"
+	if runtime.GOOS == "windows" {
+		schema = "npipe://"
+	}
+
+	if targetOptions.SockPath != nil && *targetOptions.SockPath != "" && *targetOptions.SockPath != "/var/run/docker.sock" {
+		cli, err := client.NewClientWithOpts(client.WithHost(fmt.Sprintf("%s%s", schema, *targetOptions.SockPath)), client.WithAPIVersionNegotiation())
 		if err != nil {
 			return nil, err
 		}
