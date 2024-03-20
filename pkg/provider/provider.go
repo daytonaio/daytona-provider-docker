@@ -233,11 +233,6 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*typ
 		return new(types.Empty), err
 	}
 
-	err = util.SetGitConfig(client, projectReq.Project, "daytona")
-	if err != nil {
-		return new(types.Empty), err
-	}
-
 	err = util.WaitForBinaryDownload(client, projectReq.Project)
 	if err != nil {
 		return new(types.Empty), err
@@ -248,11 +243,6 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*typ
 		Privileged: true,
 		Cmd:        []string{"sudo", "chown", "-R", "daytona:daytona", "/workspaces"},
 	}, nil)
-	if err != nil {
-		return new(types.Empty), err
-	}
-
-	err = util.CloneRepository(client, projectReq.Project, path.Join("/workspaces", projectReq.Project.Name))
 	if err != nil {
 		return new(types.Empty), err
 	}

@@ -11,7 +11,6 @@ require (
 	golang.org/x/crypto v0.21.0
 	golang.org/x/sync v0.5.0
 	golang.org/x/term v0.18.0
-	gopkg.in/ini.v1 v1.67.0
 )
 
 require (
