@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 
+	"github.com/daytonaio/daytona/pkg/provider/util"
 	"github.com/daytonaio/daytona/pkg/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -44,7 +45,7 @@ func InitContainer(client *client.Client, project *types.Project, workdirPath, i
 		},
 		User:         "daytona",
 		Env:          envVars,
-		Cmd:          []string{"bash", "-c", fmt.Sprintf("curl -sf -L %s | sudo -E bash && daytona agent", serverDownloadUrl)},
+		Cmd:          []string{"bash", "-c", util.GetProjectStartScript(serverDownloadUrl, project.ApiKey)},
 		AttachStdout: true,
 		AttachStderr: true,
 	}, &container.HostConfig{
