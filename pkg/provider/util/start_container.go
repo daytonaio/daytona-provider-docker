@@ -8,14 +8,19 @@ import (
 	"github.com/daytonaio/daytona/pkg/types"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
 )
 
 func StartContainer(client *client.Client, project *types.Project, logWriter *io.Writer) error {
 	containerName := GetContainerName(project)
 	ctx := context.Background()
 
-	err := client.ContainerStart(ctx, containerName, docker_types.ContainerStartOptions{})
+	inspect, err := client.ContainerInspect(ctx, containerName)
+
+	if err == nil && inspect.State.Running {
+		return nil
+	}
+
+	err = client.ContainerStart(ctx, containerName, docker_types.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -37,18 +42,10 @@ func StartContainer(client *client.Client, project *types.Project, logWriter *io
 
 	if logWriter != nil {
 		go func() {
-			logs, err := client.ContainerLogs(ctx, containerName, docker_types.ContainerLogsOptions{
-				ShowStdout: true,
-				ShowStderr: true,
-				Follow:     true,
-			})
+			err := GetContainerLogs(client, containerName, logWriter)
 			if err != nil {
 				(*logWriter).Write([]byte(err.Error()))
-				return
 			}
-			defer logs.Close()
-
-			stdcopy.StdCopy(*logWriter, *logWriter, logs)
 		}()
 	}
 
