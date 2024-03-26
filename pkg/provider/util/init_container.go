@@ -12,7 +12,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func InitContainer(client *client.Client, project *types.Project, workdirPath, imageName, serverDownloadUrl, serverVersion, serverUrl, serverApiUrl string) error {
+func InitContainer(client *client.Client, project *types.Project, workdirPath, imageName, serverDownloadUrl string) error {
 	ctx := context.Background()
 
 	mounts := []mount.Mount{
@@ -24,14 +24,11 @@ func InitContainer(client *client.Client, project *types.Project, workdirPath, i
 	}
 
 	envVars := []string{
-		"DAYTONA_WS_ID=" + project.WorkspaceId,
 		"DAYTONA_WS_DIR=" + path.Join("/workspaces", project.Name),
-		"DAYTONA_WS_PROJECT_NAME=" + project.Name,
-		"DAYTONA_WS_PROJECT_REPOSITORY_URL=" + project.Repository.Url,
-		"DAYTONA_SERVER_API_KEY=" + project.ApiKey,
-		"DAYTONA_SERVER_VERSION=" + serverVersion,
-		"DAYTONA_SERVER_URL=" + serverUrl,
-		"DAYTONA_SERVER_API_URL=" + serverApiUrl,
+	}
+
+	for key, value := range project.EnvVars {
+		envVars = append(envVars, fmt.Sprintf("%s=%s", key, value))
 	}
 
 	_, err := client.ContainerCreate(ctx, &container.Config{

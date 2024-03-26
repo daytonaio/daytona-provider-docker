@@ -197,11 +197,6 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*typ
 		return new(types.Empty), errors.New("ServerApiUrl not set. Did you forget to call Initialize?")
 	}
 
-	serverVersion := "latest"
-	if p.ServerVersion != nil {
-		serverVersion = *p.ServerVersion
-	}
-
 	client, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(types.Empty), err
@@ -223,7 +218,7 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*typ
 		defer projectLogWriter.Close()
 	}
 
-	err = util.InitContainer(client, projectReq.Project, clonePath, targetOptions.ContainerImage, *p.ServerDownloadUrl, serverVersion, *p.ServerUrl, *p.ServerApiUrl)
+	err = util.InitContainer(client, projectReq.Project, clonePath, targetOptions.ContainerImage, *p.ServerDownloadUrl)
 	if err != nil {
 		return new(types.Empty), err
 	}
