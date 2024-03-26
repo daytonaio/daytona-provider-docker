@@ -42,9 +42,11 @@ func InitContainer(client *client.Client, project *types.Project, workdirPath, i
 			"daytona.workspace.project.repository.url": project.Repository.Url,
 			// todo: Add more properties here
 		},
-		User: "daytona",
-		Env:  envVars,
-		Cmd:  []string{"bash", "-c", fmt.Sprintf("curl -sf -L %s | sudo -E bash && daytona agent", serverDownloadUrl)},
+		User:         "daytona",
+		Env:          envVars,
+		Cmd:          []string{"bash", "-c", fmt.Sprintf("curl -sf -L %s | sudo -E bash && daytona agent", serverDownloadUrl)},
+		AttachStdout: true,
+		AttachStderr: true,
 	}, &container.HostConfig{
 		Privileged: true,
 		Binds: []string{
