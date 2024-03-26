@@ -223,7 +223,14 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*typ
 		return new(types.Empty), err
 	}
 
-	err = util.StartContainer(client, projectReq.Project, &logWriter)
+	go func() {
+		err := util.GetContainerLogs(client, util.GetContainerName(projectReq.Project), &logWriter)
+		if err != nil {
+			logWriter.Write([]byte(err.Error()))
+		}
+	}()
+
+	err = util.StartContainer(client, projectReq.Project, nil)
 	if err != nil {
 		return new(types.Empty), err
 	}
