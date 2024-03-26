@@ -2,14 +2,16 @@ package util
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/daytonaio/daytona/pkg/types"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 )
 
-func StartContainer(client *client.Client, project *types.Project) error {
+func StartContainer(client *client.Client, project *types.Project, logWriter *io.Writer) error {
 	containerName := GetContainerName(project)
 	ctx := context.Background()
 
@@ -31,6 +33,23 @@ func StartContainer(client *client.Client, project *types.Project) error {
 		}
 
 		time.Sleep(1 * time.Second)
+	}
+
+	if logWriter != nil {
+		go func() {
+			logs, err := client.ContainerLogs(ctx, containerName, docker_types.ContainerLogsOptions{
+				ShowStdout: true,
+				ShowStderr: true,
+				Follow:     true,
+			})
+			if err != nil {
+				(*logWriter).Write([]byte(err.Error()))
+				return
+			}
+			defer logs.Close()
+
+			stdcopy.StdCopy(*logWriter, *logWriter, logs)
+		}()
 	}
 
 	// start dockerd

@@ -8,11 +8,9 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
-
-	log "github.com/sirupsen/logrus"
 )
 
-func PullImage(client *client.Client, imageName string) error {
+func PullImage(client *client.Client, imageName string, logWriter *io.Writer) error {
 	ctx := context.Background()
 
 	tag := "latest"
@@ -40,12 +38,16 @@ func PullImage(client *client.Client, imageName string) error {
 		}
 
 		if found {
-			log.Info("Image found")
+			if logWriter != nil {
+				(*logWriter).Write([]byte("Image found locally\n"))
+			}
 			return nil
 		}
 	}
 
-	log.Info("Pulling image...")
+	if logWriter != nil {
+		(*logWriter).Write([]byte("Pulling image...\n"))
+	}
 	responseBody, err := client.ImagePull(ctx, imageName, types.ImagePullOptions{})
 	if err != nil {
 		return err
@@ -55,7 +57,10 @@ func PullImage(client *client.Client, imageName string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Image pulled successfully")
+
+	if logWriter != nil {
+		(*logWriter).Write([]byte("Image pulled successfully\n"))
+	}
 
 	return nil
 }

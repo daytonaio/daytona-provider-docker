@@ -3,19 +3,23 @@ package provider
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path"
 	"runtime"
 
 	internal "github.com/daytonaio/daytona-docker-provider/internal"
+	log_writers "github.com/daytonaio/daytona-docker-provider/internal/log"
 	"github.com/daytonaio/daytona-docker-provider/pkg/client"
 	"github.com/daytonaio/daytona-docker-provider/pkg/provider/util"
 	provider_types "github.com/daytonaio/daytona-docker-provider/pkg/types"
 
+	"github.com/daytonaio/daytona/pkg/logger"
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/types"
 	docker_types "github.com/docker/docker/api/types"
 	docker_client "github.com/docker/docker/client"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,6 +29,7 @@ type DockerProvider struct {
 	ServerVersion     *string
 	ServerUrl         *string
 	ServerApiUrl      *string
+	LogsDir           *string
 	RemoteSockDir     string
 }
 
@@ -54,6 +59,7 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*ty
 	p.ServerVersion = &req.ServerVersion
 	p.ServerUrl = &req.ServerUrl
 	p.ServerApiUrl = &req.ServerApiUrl
+	p.LogsDir = &req.LogsDir
 
 	return new(types.Empty), nil
 }
@@ -100,12 +106,19 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		return new(types.Empty), err
 	}
 
-	err = util.PullImage(client, targetOptions.ContainerImage)
+	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
+	if p.LogsDir != nil {
+		wsLogWriter := logger.GetWorkspaceLogger(*p.LogsDir, workspaceReq.Workspace.Id)
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter)
+		defer wsLogWriter.Close()
+	}
+
+	err = util.PullImage(client, targetOptions.ContainerImage, &logWriter)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.CreateNetwork(client, workspaceReq.Workspace.Id)
+	err = util.CreateNetwork(client, workspaceReq.Workspace.Id, &logWriter)
 	return new(types.Empty), err
 }
 
@@ -163,8 +176,6 @@ func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*types.Empty, error) {
-	log.Info("Initializing project: ", projectReq.Project.Name)
-
 	targetOptions, err := provider_types.ParseTargetOptions(projectReq.TargetOptions)
 	if err != nil {
 		return new(types.Empty), err
@@ -203,12 +214,21 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*typ
 		return new(types.Empty), err
 	}
 
+	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
+	if p.LogsDir != nil {
+		wsLogWriter := logger.GetWorkspaceLogger(*p.LogsDir, projectReq.Project.WorkspaceId)
+		projectLogWriter := logger.GetProjectLogger(*p.LogsDir, projectReq.Project.WorkspaceId, projectReq.Project.Name)
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter, projectLogWriter)
+		defer wsLogWriter.Close()
+		defer projectLogWriter.Close()
+	}
+
 	err = util.InitContainer(client, projectReq.Project, clonePath, targetOptions.ContainerImage, *p.ServerDownloadUrl, serverVersion, *p.ServerUrl, *p.ServerApiUrl)
 	if err != nil {
 		return new(types.Empty), err
 	}
 
-	err = util.StartContainer(client, projectReq.Project)
+	err = util.StartContainer(client, projectReq.Project, &logWriter)
 	if err != nil {
 		return new(types.Empty), err
 	}
@@ -246,7 +266,16 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*type
 		return new(types.Empty), err
 	}
 
-	err = util.StartContainer(client, projectReq.Project)
+	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
+	if p.LogsDir != nil {
+		wsLogWriter := logger.GetWorkspaceLogger(*p.LogsDir, projectReq.Project.WorkspaceId)
+		projectLogWriter := logger.GetProjectLogger(*p.LogsDir, projectReq.Project.WorkspaceId, projectReq.Project.Name)
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter, projectLogWriter)
+		defer wsLogWriter.Close()
+		defer projectLogWriter.Close()
+	}
+
+	err = util.StartContainer(client, projectReq.Project, &logWriter)
 	return new(types.Empty), err
 }
 

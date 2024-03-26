@@ -2,14 +2,16 @@ package util
 
 import (
 	"context"
+	"io"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	log "github.com/sirupsen/logrus"
 )
 
-func CreateNetwork(client *client.Client, workspaceId string) error {
-	log.Debug("Initializing network")
+func CreateNetwork(client *client.Client, workspaceId string, logWriter *io.Writer) error {
+	if logWriter != nil {
+		(*logWriter).Write([]byte("Initializing network\n"))
+	}
 	ctx := context.Background()
 
 	networks, err := client.NetworkList(ctx, types.NetworkListOptions{})
@@ -19,9 +21,9 @@ func CreateNetwork(client *client.Client, workspaceId string) error {
 
 	for _, network := range networks {
 		if network.Name == workspaceId {
-			log.WithFields(log.Fields{
-				"workspace": workspaceId,
-			}).Debug("Network already exists")
+			if logWriter != nil {
+				(*logWriter).Write([]byte("Network already exists\n"))
+			}
 			return nil
 		}
 	}
@@ -33,6 +35,8 @@ func CreateNetwork(client *client.Client, workspaceId string) error {
 		return err
 	}
 
-	log.Debug("Network initialized")
+	if logWriter != nil {
+		(*logWriter).Write([]byte("Network initialized\n"))
+	}
 	return nil
 }
