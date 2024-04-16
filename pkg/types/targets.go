@@ -7,7 +7,6 @@ import (
 )
 
 type TargetOptions struct {
-	ContainerImage   string  `json:"Container Image"`
 	RemoteHostname   *string `json:"Remote Hostname,omitempty"`
 	RemotePort       *int    `json:"Remote Port,omitempty"`
 	RemoteUser       *string `json:"Remote User,omitempty"`
@@ -18,10 +17,6 @@ type TargetOptions struct {
 
 func GetTargetManifest() *provider.ProviderTargetManifest {
 	return &provider.ProviderTargetManifest{
-		"Container Image": provider.ProviderTargetProperty{
-			Type:         provider.ProviderTargetPropertyTypeString,
-			DefaultValue: "daytonaio/workspace-project",
-		},
 		"Remote Hostname": provider.ProviderTargetProperty{
 			Type:              provider.ProviderTargetPropertyTypeString,
 			DisabledPredicate: "^local$",
