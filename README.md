@@ -39,7 +39,6 @@ The Docker Provider allows Daytona to create workspace projects as Docker contai
 
 | Property                	| Type     	| Optional 	| DefaultValue                	| InputMasked 	| DisabledPredicate 	|
 |-------------------------	|----------	|----------	|-----------------------------	|-------------	|-------------------	|
-| Container Image         	| String   	| false    	| daytonaio/workspace-project 	| false       	|                   	|
 | Sock Path               	| String   	| true     	| /var/run/docker.sock        	| false       	|                   	|
 | Remote Hostname         	| String   	| true     	|                             	| false       	| ^local$           	|
 | Remote Port             	| Int      	| true     	| 22                          	| false       	| ^local$           	|
@@ -52,7 +51,6 @@ The Docker Provider allows Daytona to create workspace projects as Docker contai
 #### Local
 | Property        	| Value                       	|
 |-----------------	|-----------------------------	|
-| Container Image 	| daytonaio/workspace-project 	|
 | Sock Path       	| /var/run/docker.sock        	|
 
 

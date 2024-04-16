@@ -6,13 +6,13 @@ import (
 	"path"
 
 	"github.com/daytonaio/daytona/pkg/provider/util"
-	"github.com/daytonaio/daytona/pkg/types"
+	"github.com/daytonaio/daytona/pkg/workspace"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 )
 
-func InitContainer(client *client.Client, project *types.Project, workdirPath, imageName, serverDownloadUrl string) error {
+func InitContainer(client *client.Client, project *workspace.Project, workdirPath, imageName, serverDownloadUrl string) error {
 	ctx := context.Background()
 
 	mounts := []mount.Mount{
@@ -61,7 +61,7 @@ func InitContainer(client *client.Client, project *types.Project, workdirPath, i
 	return nil
 }
 
-func WaitForBinaryDownload(client *client.Client, project *types.Project) error {
+func WaitForBinaryDownload(client *client.Client, project *workspace.Project) error {
 	ctx := context.Background()
 
 	for {

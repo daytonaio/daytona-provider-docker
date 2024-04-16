@@ -8,8 +8,9 @@ import (
 	"github.com/daytonaio/daytona-docker-provider/pkg/client"
 	"github.com/daytonaio/daytona-docker-provider/pkg/provider/util"
 
+	"github.com/daytonaio/daytona/pkg/gitprovider"
 	"github.com/daytonaio/daytona/pkg/provider"
-	"github.com/daytonaio/daytona/pkg/types"
+	"github.com/daytonaio/daytona/pkg/workspace"
 
 	docker_provider "github.com/daytonaio/daytona-docker-provider/pkg/provider"
 	provider_types "github.com/daytonaio/daytona-docker-provider/pkg/types"
@@ -19,28 +20,26 @@ import (
 )
 
 var dockerProvider = &docker_provider.DockerProvider{}
-var targetOptions = &provider_types.TargetOptions{
-	ContainerImage: "daytonaio/workspace-project",
-}
+var targetOptions = &provider_types.TargetOptions{}
 var sockDir = "/tmp/target-socks"
 var optionsString string
 
-var project1 = &types.Project{
+var project1 = &workspace.Project{
 	Name: "test",
-	Repository: &types.Repository{
-		Id:     "123",
-		Url:    "https://github.com/daytonaio/daytona",
-		Name:   "daytona",
-		Branch: "main",
+	Repository: &gitprovider.GitRepository{
+		Id:   "123",
+		Url:  "https://github.com/daytonaio/daytona",
+		Name: "daytona",
 	},
+	Image:       "daytonaio/workspace-project:latest",
 	WorkspaceId: "123",
 }
 
-var workspace = &types.Workspace{
+var workspace1 = &workspace.Workspace{
 	Id:     "123",
 	Name:   "test",
 	Target: "local",
-	Projects: []*types.Project{
+	Projects: []*workspace.Project{
 		project1,
 	},
 }
@@ -48,7 +47,7 @@ var workspace = &types.Workspace{
 func TestCreateWorkspace(t *testing.T) {
 	wsReq := &provider.WorkspaceRequest{
 		TargetOptions: optionsString,
-		Workspace:     workspace,
+		Workspace:     workspace1,
 	}
 
 	_, err := dockerProvider.CreateWorkspace(wsReq)
@@ -56,7 +55,7 @@ func TestCreateWorkspace(t *testing.T) {
 		t.Errorf("Error creating workspace: %s", err)
 	}
 
-	_, err = getDockerClient().NetworkInspect(context.Background(), workspace.Id, docker_types.NetworkInspectOptions{})
+	_, err = getDockerClient().NetworkInspect(context.Background(), workspace1.Id, docker_types.NetworkInspectOptions{})
 	if err != nil {
 		t.Errorf("Expected network to exist")
 	}
@@ -65,7 +64,7 @@ func TestCreateWorkspace(t *testing.T) {
 func TestGetWorkspaceInfo(t *testing.T) {
 	wsReq := &provider.WorkspaceRequest{
 		TargetOptions: optionsString,
-		Workspace:     workspace,
+		Workspace:     workspace1,
 	}
 
 	workspaceInfo, err := dockerProvider.GetWorkspaceInfo(wsReq)
@@ -87,7 +86,7 @@ func TestGetWorkspaceInfo(t *testing.T) {
 func TestDestroyWorkspace(t *testing.T) {
 	wsReq := &provider.WorkspaceRequest{
 		TargetOptions: optionsString,
-		Workspace:     workspace,
+		Workspace:     workspace1,
 	}
 
 	_, err := dockerProvider.DestroyWorkspace(wsReq)
@@ -100,7 +99,7 @@ func TestDestroyWorkspace(t *testing.T) {
 		t.Errorf("Error getting docker client: %s", err)
 	}
 
-	_, err = dockerClient.NetworkInspect(context.Background(), workspace.Id, docker_types.NetworkInspectOptions{})
+	_, err = dockerClient.NetworkInspect(context.Background(), workspace1.Id, docker_types.NetworkInspectOptions{})
 	if err == nil {
 		t.Errorf("Expected network to not exist")
 	}

@@ -5,12 +5,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/daytonaio/daytona/pkg/types"
+	"github.com/daytonaio/daytona/pkg/workspace"
 	docker_types "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
-func StartContainer(client *client.Client, project *types.Project, logWriter *io.Writer) error {
+func StartContainer(client *client.Client, project *workspace.Project, logWriter *io.Writer) error {
 	containerName := GetContainerName(project)
 	ctx := context.Background()
 
