@@ -204,7 +204,7 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 		defer projectLogWriter.Close()
 	}
 
-	err = util.PullImage(client, projectReq.Project.Image, &logWriter)
+	err = util.PullImage(client, projectReq.Project.Image, projectReq.ContainerRegistry, &logWriter)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -225,11 +225,6 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 			logWriter.Write([]byte(err.Error()))
 		}
 	}()
-
-	err = util.WaitForBinaryDownload(client, projectReq.Project)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
 
 	_, err = util.ExecSync(client, util.GetContainerName(projectReq.Project), docker_types.ExecConfig{
 		User:       "daytona",

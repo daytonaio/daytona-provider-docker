@@ -49,27 +49,12 @@ func InitContainer(client *client.Client, project *workspace.Project, workdirPat
 		Privileged: true,
 		Binds: []string{
 			fmt.Sprintf("%s:/workspaces", workdirPath),
-			"/tmp/daytona:/tmp/daytona",
 		},
 		Mounts:      mounts,
 		NetworkMode: container.NetworkMode(project.WorkspaceId),
 	}, nil, nil, GetContainerName(project)) //	TODO: namespaced names
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func WaitForBinaryDownload(client *client.Client, project *workspace.Project) error {
-	ctx := context.Background()
-
-	for {
-		_, err := client.ContainerStatPath(ctx, GetContainerName(project), "/usr/local/bin/daytona")
-
-		if err == nil {
-			break
-		}
 	}
 
 	return nil

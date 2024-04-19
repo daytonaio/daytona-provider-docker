@@ -2,15 +2,19 @@ package util
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"strings"
 
+	"github.com/daytonaio/daytona/pkg/containerregistry"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 )
 
-func PullImage(client *client.Client, imageName string, logWriter *io.Writer) error {
+func PullImage(client *client.Client, imageName string, cr *containerregistry.ContainerRegistry, logWriter *io.Writer) error {
 	ctx := context.Background()
 
 	tag := "latest"
@@ -48,7 +52,9 @@ func PullImage(client *client.Client, imageName string, logWriter *io.Writer) er
 	if logWriter != nil {
 		(*logWriter).Write([]byte("Pulling image...\n"))
 	}
-	responseBody, err := client.ImagePull(ctx, imageName, types.ImagePullOptions{})
+	responseBody, err := client.ImagePull(ctx, imageName, types.ImagePullOptions{
+		RegistryAuth: getRegistryAuth(cr),
+	})
 	if err != nil {
 		return err
 	}
@@ -63,4 +69,21 @@ func PullImage(client *client.Client, imageName string, logWriter *io.Writer) er
 	}
 
 	return nil
+}
+
+func getRegistryAuth(cr *containerregistry.ContainerRegistry) string {
+	if cr == nil {
+		return ""
+	}
+
+	authConfig := registry.AuthConfig{
+		Username: cr.Username,
+		Password: cr.Password,
+	}
+	encodedJSON, err := json.Marshal(authConfig)
+	if err != nil {
+		return ""
+	}
+
+	return base64.URLEncoding.EncodeToString(encodedJSON)
 }
