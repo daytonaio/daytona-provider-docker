@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -11,17 +10,13 @@ import (
 	internal "github.com/daytonaio/daytona-docker-provider/internal"
 	log_writers "github.com/daytonaio/daytona-docker-provider/internal/log"
 	"github.com/daytonaio/daytona-docker-provider/pkg/client"
-	"github.com/daytonaio/daytona-docker-provider/pkg/provider/util"
 	provider_types "github.com/daytonaio/daytona-docker-provider/pkg/types"
 
+	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logger"
 	"github.com/daytonaio/daytona/pkg/provider"
 	provider_util "github.com/daytonaio/daytona/pkg/provider/util"
 	"github.com/daytonaio/daytona/pkg/workspace"
-	docker_types "github.com/docker/docker/api/types"
-	docker_client "github.com/docker/docker/client"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type DockerProvider struct {
@@ -92,25 +87,21 @@ func (p DockerProvider) GetDefaultTargets() (*[]provider.ProviderTarget, error) 
 	return &defaultTargets, nil
 }
 
-func (p DockerProvider) getProjectPath(basePath string, project *workspace.Project) string {
-	return path.Join(basePath, "workspaces", project.WorkspaceId, "projects", project.Name)
-}
-
 func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	client, err := p.getClient(workspaceReq.TargetOptions)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
-		wsLogWriter := logger.NewWorkspaceLogger(*p.LogsDir, workspaceReq.Workspace.Id)
+		loggerFactory := logger.NewLoggerFactory(*p.LogsDir)
+		wsLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter)
 		defer wsLogWriter.Close()
 	}
 
-	err = util.CreateNetwork(client, workspaceReq.Workspace.Id, &logWriter)
-	return new(provider_util.Empty), err
+	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	return new(provider_util.Empty), dockerClient.CreateWorkspace(workspaceReq.Workspace, logWriter)
 }
 
 func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
@@ -122,48 +113,21 @@ func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (
 }
 
 func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	if p.BasePath == nil {
-		return new(provider_util.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
-	}
-
-	err := os.RemoveAll(path.Join(*p.BasePath, "workspaces", workspaceReq.Workspace.Id))
+	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	client, err := p.getClient(workspaceReq.TargetOptions)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	return new(provider_util.Empty), util.RemoveNetwork(client, workspaceReq.Workspace.Id)
+	return new(provider_util.Empty), dockerClient.DestroyWorkspace(workspaceReq.Workspace)
 }
 
 func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*workspace.WorkspaceInfo, error) {
-	providerMetadata, err := p.getWorkspaceMetadata(workspaceReq)
+	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	workspaceInfo := &workspace.WorkspaceInfo{
-		Name:             workspaceReq.Workspace.Name,
-		ProviderMetadata: providerMetadata,
-	}
-
-	projectInfos := []*workspace.ProjectInfo{}
-	for _, project := range workspaceReq.Workspace.Projects {
-		projectInfo, err := p.GetProjectInfo(&provider.ProjectRequest{
-			TargetOptions: workspaceReq.TargetOptions,
-			Project:       project,
-		})
-		if err != nil {
-			return nil, err
-		}
-		projectInfos = append(projectInfos, projectInfo)
-	}
-	workspaceInfo.Projects = projectInfos
-
-	return workspaceInfo, nil
+	return dockerClient.GetWorkspaceInfo(workspaceReq.Workspace)
 }
 
 func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
@@ -171,193 +135,87 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 		return new(provider_util.Empty), errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
 	}
 
-	if p.BasePath == nil {
-		return new(provider_util.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
-	}
-
-	if p.ServerUrl == nil {
-		return new(provider_util.Empty), errors.New("ServerUrl not set. Did you forget to call Initialize?")
-	}
-
-	if p.ServerApiUrl == nil {
-		return new(provider_util.Empty), errors.New("ServerApiUrl not set. Did you forget to call Initialize?")
-	}
-
-	client, err := p.getClient(projectReq.TargetOptions)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	clonePath := p.getProjectPath(*p.BasePath, projectReq.Project)
-
-	err = os.MkdirAll(clonePath, 0755)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
-		wsLogWriter := logger.NewWorkspaceLogger(*p.LogsDir, projectReq.Project.WorkspaceId)
-		projectLogWriter := logger.NewProjectLogger(*p.LogsDir, projectReq.Project.WorkspaceId, projectReq.Project.Name)
-		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter, projectLogWriter)
-		defer wsLogWriter.Close()
+		loggerFactory := logger.NewLoggerFactory(*p.LogsDir)
+		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.WorkspaceId, projectReq.Project.Name)
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, projectLogWriter)
 		defer projectLogWriter.Close()
 	}
 
-	err = util.PullImage(client, projectReq.Project.Image, &logWriter)
+	dockerClient, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	err = util.InitContainer(client, projectReq.Project, clonePath, projectReq.Project.Image, *p.ServerDownloadUrl)
+	err = dockerClient.CreateProject(projectReq.Project, *p.ServerDownloadUrl, projectReq.ContainerRegistry, logWriter)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	err = util.StartContainer(client, projectReq.Project, nil)
+	err = dockerClient.StartProject(projectReq.Project)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
 	go func() {
-		err := util.GetContainerLogs(client, util.GetContainerName(projectReq.Project), &logWriter)
+		err = dockerClient.GetContainerLogs(dockerClient.GetProjectContainerName(projectReq.Project), logWriter)
 		if err != nil {
 			logWriter.Write([]byte(err.Error()))
 		}
 	}()
 
-	err = util.WaitForBinaryDownload(client, projectReq.Project)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	_, err = util.ExecSync(client, util.GetContainerName(projectReq.Project), docker_types.ExecConfig{
-		User:       "daytona",
-		Privileged: true,
-		Cmd:        []string{"sudo", "chown", "-R", "daytona:daytona", "/workspaces"},
-	}, nil)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
 	return new(provider_util.Empty), nil
 }
 
 func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	client, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		wsLogWriter := logger.NewWorkspaceLogger(*p.LogsDir, projectReq.Project.WorkspaceId)
-		projectLogWriter := logger.NewProjectLogger(*p.LogsDir, projectReq.Project.WorkspaceId, projectReq.Project.Name)
-		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter, projectLogWriter)
-		defer wsLogWriter.Close()
-		defer projectLogWriter.Close()
-	}
-
-	err = util.StartContainer(client, projectReq.Project, &logWriter)
-	return new(provider_util.Empty), err
+	return new(provider_util.Empty), dockerClient.StartProject(projectReq.Project)
 }
 
 func (p DockerProvider) StopProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	client, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	err = util.StopContainer(client, projectReq.Project)
-	return new(provider_util.Empty), err
+	return new(provider_util.Empty), dockerClient.StopProject(projectReq.Project)
 }
 
 func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	client, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	err = util.RemoveContainer(client, projectReq.Project)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	if p.BasePath == nil {
-		return new(provider_util.Empty), errors.New("BasePath not set. Did you forget to call Initialize?")
-	}
-
-	err = os.RemoveAll(p.getProjectPath(*p.BasePath, projectReq.Project))
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	return new(provider_util.Empty), nil
+	return new(provider_util.Empty), dockerClient.DestroyProject(projectReq.Project)
 }
 
 func (p DockerProvider) GetProjectInfo(projectReq *provider.ProjectRequest) (*workspace.ProjectInfo, error) {
-	client, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	isRunning := true
-	info, err := util.GetContainerInfo(client, projectReq.Project)
-	if err != nil {
-		if docker_client.IsErrNotFound(err) {
-			log.Debug("Container not found, project is not running")
-			isRunning = false
-		} else {
-			return nil, err
-		}
-	}
-
-	if info == nil || info.State == nil {
-		return &workspace.ProjectInfo{
-			Name:             projectReq.Project.Name,
-			IsRunning:        isRunning,
-			Created:          "",
-			ProviderMetadata: "{\"state\": \"container not found\"}",
-		}, nil
-	}
-
-	projectInfo := &workspace.ProjectInfo{
-		Name:      projectReq.Project.Name,
-		IsRunning: isRunning,
-		Created:   info.Created,
-	}
-
-	if info.Config != nil && info.Config.Labels != nil {
-		metadata, err := json.Marshal(info.Config.Labels)
-		if err != nil {
-			return nil, err
-		}
-		projectInfo.ProviderMetadata = string(metadata)
-	} else {
-		log.Warn("Could not get container labels for project: ", projectReq.Project.Name)
-	}
-
-	return projectInfo, nil
+	return dockerClient.GetProjectInfo(projectReq.Project)
 }
 
-func (p DockerProvider) getWorkspaceMetadata(workspaceReq *provider.WorkspaceRequest) (string, error) {
-	metadata := provider_types.WorkspaceMetadata{
-		NetworkId: workspaceReq.Workspace.Id,
-	}
-
-	jsonContent, err := json.Marshal(metadata)
-	if err != nil {
-		return "", err
-	}
-
-	return string(jsonContent), nil
-}
-
-func (p DockerProvider) getClient(targetOptionsJson string) (*docker_client.Client, error) {
+func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClient, error) {
 	targetOptions, err := provider_types.ParseTargetOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
 	}
 
-	return client.GetClient(*targetOptions, p.RemoteSockDir)
+	client, err := client.GetClient(*targetOptions, p.RemoteSockDir)
+	if err != nil {
+		return nil, err
+	}
+
+	return docker.NewDockerClient(docker.DockerClientConfig{
+		ApiClient: client,
+	}), nil
 }
