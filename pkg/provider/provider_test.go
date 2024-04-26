@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/daytonaio/daytona-docker-provider/pkg/client"
-	"github.com/daytonaio/daytona-docker-provider/pkg/provider/util"
 
+	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/gitprovider"
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/workspace"
@@ -42,6 +42,12 @@ var workspace1 = &workspace.Workspace{
 	Projects: []*workspace.Project{
 		project1,
 	},
+}
+
+func GetContainerName(project *workspace.Project) string {
+	dockerClient := docker.NewDockerClient(docker.DockerClientConfig{})
+
+	return dockerClient.GetProjectContainerName(project)
 }
 
 func TestCreateWorkspace(t *testing.T) {
@@ -118,7 +124,7 @@ func TestCreateProject(t *testing.T) {
 		t.Errorf("Error creating project: %s", err)
 	}
 
-	_, err = getDockerClient().ContainerInspect(context.Background(), util.GetContainerName(project1))
+	_, err = getDockerClient().ContainerInspect(context.Background(), GetContainerName(project1))
 	if err != nil {
 		t.Errorf("Expected container to exist")
 	}
@@ -135,7 +141,7 @@ func TestDestroyProject(t *testing.T) {
 		t.Errorf("Error deleting project: %s", err)
 	}
 
-	_, err = getDockerClient().ContainerInspect(context.Background(), util.GetContainerName(project1))
+	_, err = getDockerClient().ContainerInspect(context.Background(), GetContainerName(project1))
 	if err == nil {
 		t.Errorf("Expected container to not exist")
 	}
