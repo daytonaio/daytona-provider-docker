@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/daytonaio/daytona-docker-provider/pkg/ssh_tunnel/util"
-	"github.com/daytonaio/daytona-docker-provider/pkg/types"
+	"github.com/daytonaio/daytona-provider-docker/pkg/ssh_tunnel/util"
+	"github.com/daytonaio/daytona-provider-docker/pkg/types"
 
 	"github.com/docker/docker/client"
 

@@ -24,9 +24,9 @@ This repository is the home of the <a href="https://github.com/daytonaio/daytona
 </br>
 
 <p align="center">
-  <a href="https://github.com/daytonaio/daytona-docker-provider/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=%F0%9F%90%9B+Bug+Report%3A+">Report Bug</a>
+  <a href="https://github.com/daytonaio/daytona-provider-docker/issues/new?assignees=&labels=bug&projects=&template=bug_report.md&title=%F0%9F%90%9B+Bug+Report%3A+">Report Bug</a>
     ·
-  <a href="https://github.com/daytonaio/daytona-docker-provider/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.md&title=%F0%9F%9A%80+Feature%3A+">Request Feature</a>
+  <a href="https://github.com/daytonaio/daytona-provider-docker/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.md&title=%F0%9F%9A%80+Feature%3A+">Request Feature</a>
     ·
   <a href="https://join.slack.com/t/daytonacommunity/shared_invite/zt-273yohksh-Q5YSB5V7tnQzX2RoTARr7Q">Join Our Slack</a>
     ·

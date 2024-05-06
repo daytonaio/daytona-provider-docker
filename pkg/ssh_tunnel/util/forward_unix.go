@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/daytonaio/daytona-docker-provider/pkg/ssh_tunnel"
-	"github.com/daytonaio/daytona-docker-provider/pkg/types"
+	"github.com/daytonaio/daytona-provider-docker/pkg/ssh_tunnel"
+	"github.com/daytonaio/daytona-provider-docker/pkg/types"
 
 	log "github.com/sirupsen/logrus"
 )

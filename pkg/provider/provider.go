@@ -7,10 +7,10 @@ import (
 	"path"
 	"runtime"
 
-	internal "github.com/daytonaio/daytona-docker-provider/internal"
-	log_writers "github.com/daytonaio/daytona-docker-provider/internal/log"
-	"github.com/daytonaio/daytona-docker-provider/pkg/client"
-	provider_types "github.com/daytonaio/daytona-docker-provider/pkg/types"
+	internal "github.com/daytonaio/daytona-provider-docker/internal"
+	log_writers "github.com/daytonaio/daytona-provider-docker/internal/log"
+	"github.com/daytonaio/daytona-provider-docker/pkg/client"
+	provider_types "github.com/daytonaio/daytona-provider-docker/pkg/types"
 
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logger"

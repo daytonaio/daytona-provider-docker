@@ -4,7 +4,7 @@ The team at Daytona welcomes contributions from the community. There are many wa
 
 ## Provide Feedback
 
-You might find things that can be improved while you are using the Daytona Docker Provider. You can help by [submitting an issue](https://github.com/daytonaio/daytona-docker-provider/issues/new) when:
+You might find things that can be improved while you are using the Daytona Docker Provider. You can help by [submitting an issue](https://github.com/daytonaio/daytona-provider-docker/issues/new) when:
 
 * When the Docker Provider crashes or you encounter a bug that can only be resolved by restarting Daytona.
 * An error occurs that is unrecoverable, causes workspace integrity problems or loss, or generally prevents you from using a workspace.
@@ -39,7 +39,7 @@ Follow the following steps to ensure your contribution goes smoothly.
 1. Read and follow the steps outlined in the [Daytona Contributing Policy](README.md#contributing).
 2. Configure your development environment by either following the guide below.
 3. [Fork](https://help.github.com/articles/working-with-forks/) the GitHub Repository allowing you to make the changes in your own copy of the repository.
-4. Create a [GitHub issue](https://github.com/daytonaio/daytona-docker-provider/issues) if one doesn't exist already.
+4. Create a [GitHub issue](https://github.com/daytonaio/daytona-provider-docker/issues) if one doesn't exist already.
 5. [Prepare your changes](/PREPARING_YOUR_CHANGES.md) and ensure your commits are descriptive. The document contains an optional commit template, if desired.
 6. Ensure that you sign off on all your commits to comply with the DCO v1.1. We have more details in [Prepare your changes](/PREPARING_YOUR_CHANGES.md).
 7. Create a pull request on GitHub. If you're new to GitHub, read about [pull requests](https://help.github.com/articles/about-pull-requests/). You are welcome to submit your pull request for commentary or review before it is complete by creating a [draft pull request](https://help.github.com/en/articles/about-pull-requests#draft-pull-requests). Please include specific questions or items you'd like feedback on.

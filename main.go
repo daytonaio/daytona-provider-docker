@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	hc_plugin "github.com/hashicorp/go-plugin"
 
-	p "github.com/daytonaio/daytona-docker-provider/pkg/provider"
+	p "github.com/daytonaio/daytona-provider-docker/pkg/provider"
 )
 
 func main() {
