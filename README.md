@@ -28,7 +28,7 @@ This repository is the home of the <a href="https://github.com/daytonaio/daytona
     ·
   <a href="https://github.com/daytonaio/daytona-provider-docker/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.md&title=%F0%9F%9A%80+Feature%3A+">Request Feature</a>
     ·
-  <a href="https://join.slack.com/t/daytonacommunity/shared_invite/zt-273yohksh-Q5YSB5V7tnQzX2RoTARr7Q">Join Our Slack</a>
+  <a href="https://go.daytona.io/slack">Join Our Slack</a>
     ·
   <a href="https://twitter.com/Daytonaio">Twitter</a>
 </p>
@@ -72,4 +72,4 @@ Afterwards, navigate to the [contributing guide](CONTRIBUTING.md) to get started
 ## Questions
 
 For more information on how to use and develop Daytona, talk to us on
-[Slack](https://join.slack.com/t/daytonacommunity/shared_invite/zt-273yohksh-Q5YSB5V7tnQzX2RoTARr7Q).
+[Slack](https://go.daytona.io/slack).
