@@ -3,7 +3,7 @@ module github.com/daytonaio/daytona-provider-docker
 go 1.22.2
 
 require (
-	github.com/daytonaio/daytona v0.13.0
+	github.com/daytonaio/daytona v0.18.1-0.20240610123603-811df5261739
 	github.com/docker/docker v26.1.0+incompatible
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-plugin v1.6.0
@@ -43,6 +43,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/term v0.5.0 // indirect
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
