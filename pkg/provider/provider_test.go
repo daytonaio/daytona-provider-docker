@@ -160,11 +160,13 @@ func getDockerClient() *docker_client.Client {
 
 func init() {
 	_, err := dockerProvider.Initialize(provider.InitializeProviderRequest{
-		BasePath:          "/tmp/workspaces",
-		ServerDownloadUrl: "https://download.daytona.io/daytona/get-server.sh",
-		ServerVersion:     "latest",
-		ServerUrl:         "",
-		ServerApiUrl:      "",
+		BasePath:           "/tmp/workspaces",
+		DaytonaDownloadUrl: "https://download.daytona.io/daytona/get-server.sh",
+		DaytonaVersion:     "latest",
+		ServerUrl:          "",
+		ApiUrl:             "",
+		ServerPort:         0,
+		ApiPort:            0,
 	})
 	if err != nil {
 		panic(err)
