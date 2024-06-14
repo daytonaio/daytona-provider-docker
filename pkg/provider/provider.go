@@ -2,7 +2,9 @@ package provider
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path"
 	"runtime"
@@ -20,13 +22,15 @@ import (
 )
 
 type DockerProvider struct {
-	BasePath          *string
-	ServerDownloadUrl *string
-	ServerVersion     *string
-	ServerUrl         *string
-	ServerApiUrl      *string
-	LogsDir           *string
-	RemoteSockDir     string
+	BasePath           *string
+	DaytonaDownloadUrl *string
+	DaytonaVersion     *string
+	ServerUrl          *string
+	ApiUrl             *string
+	LogsDir            *string
+	ApiPort            *uint32
+	ServerPort         *uint32
+	RemoteSockDir      string
 }
 
 func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*provider_util.Empty, error) {
@@ -51,11 +55,13 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*pr
 	}
 
 	p.BasePath = &req.BasePath
-	p.ServerDownloadUrl = &req.ServerDownloadUrl
-	p.ServerVersion = &req.ServerVersion
+	p.DaytonaDownloadUrl = &req.DaytonaDownloadUrl
+	p.DaytonaVersion = &req.DaytonaVersion
 	p.ServerUrl = &req.ServerUrl
-	p.ServerApiUrl = &req.ServerApiUrl
+	p.ApiUrl = &req.ApiUrl
 	p.LogsDir = &req.LogsDir
+	p.ApiPort = &req.ApiPort
+	p.ServerPort = &req.ServerPort
 
 	return new(provider_util.Empty), nil
 }
@@ -131,7 +137,7 @@ func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	if p.ServerDownloadUrl == nil {
+	if p.DaytonaDownloadUrl == nil {
 		return new(provider_util.Empty), errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
 	}
 
@@ -148,7 +154,19 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 		return new(provider_util.Empty), err
 	}
 
-	err = dockerClient.CreateProject(projectReq.Project, *p.ServerDownloadUrl, projectReq.ContainerRegistry, logWriter)
+	downloadUrl := *p.DaytonaDownloadUrl
+	if projectReq.Project.Target == "local" {
+		p.setLocalEnvOverride(projectReq.Project)
+		parsed, err := url.Parse(downloadUrl)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		parsed.Host = fmt.Sprintf("host.docker.internal:%d", *p.ApiPort)
+		parsed.Scheme = "http"
+		downloadUrl = parsed.String()
+	}
+
+	err = dockerClient.CreateProject(projectReq.Project, downloadUrl, projectReq.ContainerRegistry, logWriter)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -218,4 +236,16 @@ func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClien
 	return docker.NewDockerClient(docker.DockerClientConfig{
 		ApiClient: client,
 	}), nil
+}
+
+// If the project is running locally, we override the env vars to use the host.docker.internal address
+func (p DockerProvider) setLocalEnvOverride(project *workspace.Project) {
+	envOverride := workspace.GetProjectEnvVars(project, fmt.Sprintf("http://host.docker.internal:%d", *p.ApiPort), fmt.Sprintf("http://host.docker.internal:%d", *p.ServerPort))
+
+	for k := range project.EnvVars {
+		override, ok := envOverride[k]
+		if ok {
+			project.EnvVars[k] = override
+		}
+	}
 }
