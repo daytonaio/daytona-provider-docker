@@ -240,12 +240,6 @@ func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClien
 
 // If the project is running locally, we override the env vars to use the host.docker.internal address
 func (p DockerProvider) setLocalEnvOverride(project *workspace.Project) {
-	envOverride := workspace.GetProjectEnvVars(project, fmt.Sprintf("http://host.docker.internal:%d", *p.ApiPort), fmt.Sprintf("http://host.docker.internal:%d", *p.ServerPort))
-
-	for k := range project.EnvVars {
-		override, ok := envOverride[k]
-		if ok {
-			project.EnvVars[k] = override
-		}
-	}
+	project.EnvVars["DAYTONA_SERVER_URL"] = fmt.Sprintf("http://host.docker.internal:%d", *p.ServerPort)
+	project.EnvVars["DAYTONA_SERVER_API_URL"] = fmt.Sprintf("http://host.docker.internal:%d", *p.ApiPort)
 }
