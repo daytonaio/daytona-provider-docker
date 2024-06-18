@@ -13,6 +13,7 @@ type TargetOptions struct {
 	RemotePassword   *string `json:"Remote Password,omitempty"`
 	RemotePrivateKey *string `json:"Remote Private Key Path,omitempty"`
 	SockPath         *string `json:"Sock Path,omitempty"`
+	WorkspaceDataDir *string `json:"Workspace Data Dir,omitempty"`
 }
 
 func GetTargetManifest() *provider.ProviderTargetManifest {
@@ -27,7 +28,9 @@ func GetTargetManifest() *provider.ProviderTargetManifest {
 			DisabledPredicate: "^local$",
 		},
 		"Remote User": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeString,
+			Type: provider.ProviderTargetPropertyTypeString,
+			// TODO: Add docs entry
+			Description:       "Note: non-root user required",
 			DisabledPredicate: "^local$",
 		},
 		"Remote Password": provider.ProviderTargetProperty{
@@ -43,6 +46,12 @@ func GetTargetManifest() *provider.ProviderTargetManifest {
 		"Sock Path": provider.ProviderTargetProperty{
 			Type:         provider.ProviderTargetPropertyTypeString,
 			DefaultValue: "/var/run/docker.sock",
+		},
+		"Workspace Data Dir": provider.ProviderTargetProperty{
+			Type:              provider.ProviderTargetPropertyTypeString,
+			DefaultValue:      "/tmp/daytona-data",
+			Description:       "The directory on the remote host where the workspace data will be stored",
+			DisabledPredicate: "^local$",
 		},
 	}
 }

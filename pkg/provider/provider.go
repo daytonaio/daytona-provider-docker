@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 
 	internal "github.com/daytonaio/daytona-provider-docker/internal"
@@ -18,6 +19,7 @@ import (
 	"github.com/daytonaio/daytona/pkg/logs"
 	"github.com/daytonaio/daytona/pkg/provider"
 	provider_util "github.com/daytonaio/daytona/pkg/provider/util"
+	"github.com/daytonaio/daytona/pkg/ssh"
 	"github.com/daytonaio/daytona/pkg/workspace"
 )
 
@@ -93,23 +95,6 @@ func (p DockerProvider) GetDefaultTargets() (*[]provider.ProviderTarget, error) 
 	return &defaultTargets, nil
 }
 
-func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(*p.LogsDir)
-		wsLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, logs.LogSourceProvider)
-		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter)
-		defer wsLogWriter.Close()
-	}
-
-	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	return new(provider_util.Empty), dockerClient.CreateWorkspace(workspaceReq.Workspace, logWriter)
-}
-
 func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
 	return new(provider_util.Empty), nil
 }
@@ -124,7 +109,39 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 		return new(provider_util.Empty), err
 	}
 
-	return new(provider_util.Empty), dockerClient.DestroyWorkspace(workspaceReq.Workspace)
+	err = dockerClient.DestroyWorkspace(workspaceReq.Workspace)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	workspaceDir, err := p.getWorkspaceDir(workspaceReq)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	if workspaceReq.Workspace.Target == "local" {
+		err = os.RemoveAll(workspaceDir)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+	} else {
+		sshSessionConfig, err := p.getSshSessionConfig(workspaceReq.TargetOptions)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		client, err := ssh.NewClient(sshSessionConfig)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		defer client.Close()
+
+		err = client.Exec(fmt.Sprintf("rm -rf %s", workspaceDir), nil)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+	}
+
+	return new(provider_util.Empty), nil
 }
 
 func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*workspace.WorkspaceInfo, error) {
@@ -136,9 +153,15 @@ func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest
 	return dockerClient.GetWorkspaceInfo(workspaceReq.Workspace)
 }
 
-func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	if p.DaytonaDownloadUrl == nil {
-		return new(provider_util.Empty), errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
+func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
+	dockerClient, err := p.getClient(projectReq.TargetOptions)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	projectDir, err := p.getProjectDir(projectReq)
+	if err != nil {
+		return new(provider_util.Empty), err
 	}
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
@@ -149,29 +172,34 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 		defer projectLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(projectReq.TargetOptions)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
 	downloadUrl := *p.DaytonaDownloadUrl
+	var sshSessionConfig *ssh.SessionConfig
+
 	if projectReq.Project.Target == "local" {
-		p.setLocalEnvOverride(projectReq.Project)
-		parsed, err := url.Parse(downloadUrl)
+		if projectReq.Project.Build == nil {
+			parsed, err := url.Parse(downloadUrl)
+			if err != nil {
+				return new(provider_util.Empty), err
+			}
+			parsed.Host = fmt.Sprintf("host.docker.internal:%d", *p.ApiPort)
+			parsed.Scheme = "http"
+			downloadUrl = parsed.String()
+		}
+	} else {
+		sshSessionConfig, err = p.getSshSessionConfig(projectReq.TargetOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
-		parsed.Host = fmt.Sprintf("host.docker.internal:%d", *p.ApiPort)
-		parsed.Scheme = "http"
-		downloadUrl = parsed.String()
 	}
 
-	err = dockerClient.CreateProject(projectReq.Project, downloadUrl, projectReq.ContainerRegistry, logWriter)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	err = dockerClient.StartProject(projectReq.Project)
+	err = dockerClient.StartProject(&docker.CreateProjectOptions{
+		Project:          projectReq.Project,
+		ProjectDir:       projectDir,
+		Cr:               projectReq.ContainerRegistry,
+		LogWriter:        logWriter,
+		Gpc:              projectReq.GitProviderConfig,
+		SshSessionConfig: sshSessionConfig,
+	}, downloadUrl)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -186,22 +214,21 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(projectReq.TargetOptions)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	return new(provider_util.Empty), dockerClient.StartProject(projectReq.Project)
-}
-
 func (p DockerProvider) StopProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
 	dockerClient, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	return new(provider_util.Empty), dockerClient.StopProject(projectReq.Project)
+	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
+	if p.LogsDir != nil {
+		loggerFactory := logs.NewLoggerFactory(*p.LogsDir)
+		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.WorkspaceId, projectReq.Project.Name, logs.LogSourceProvider)
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, projectLogWriter)
+		defer projectLogWriter.Close()
+	}
+
+	return new(provider_util.Empty), dockerClient.StopProject(projectReq.Project, logWriter)
 }
 
 func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
@@ -210,7 +237,39 @@ func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*pr
 		return new(provider_util.Empty), err
 	}
 
-	return new(provider_util.Empty), dockerClient.DestroyProject(projectReq.Project)
+	err = dockerClient.DestroyProject(projectReq.Project)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	projectDir, err := p.getProjectDir(projectReq)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	if projectReq.Project.Target == "local" {
+		err = os.RemoveAll(projectDir)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+	} else {
+		sshSessionConfig, err := p.getSshSessionConfig(projectReq.TargetOptions)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		client, err := ssh.NewClient(sshSessionConfig)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		defer client.Close()
+
+		err = client.Exec(fmt.Sprintf("rm -rf %s", projectDir), nil)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+	}
+
+	return new(provider_util.Empty), nil
 }
 
 func (p DockerProvider) GetProjectInfo(projectReq *provider.ProjectRequest) (*workspace.ProjectInfo, error) {
@@ -242,4 +301,47 @@ func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClien
 func (p DockerProvider) setLocalEnvOverride(project *workspace.Project) {
 	project.EnvVars["DAYTONA_SERVER_URL"] = fmt.Sprintf("http://host.docker.internal:%d", *p.ServerPort)
 	project.EnvVars["DAYTONA_SERVER_API_URL"] = fmt.Sprintf("http://host.docker.internal:%d", *p.ApiPort)
+}
+
+func (p *DockerProvider) getProjectDir(projectReq *provider.ProjectRequest) (string, error) {
+	if projectReq.Project.Target == "local" {
+		return filepath.Join(*p.BasePath, projectReq.Project.WorkspaceId, fmt.Sprintf("%s-%s", projectReq.Project.WorkspaceId, projectReq.Project.Name)), nil
+	}
+
+	targetOptions, err := provider_types.ParseTargetOptions(projectReq.TargetOptions)
+	if err != nil {
+		return "", err
+	}
+
+	// Using path instead of filepath because we always want to use / as the separator
+	return path.Join(*targetOptions.WorkspaceDataDir, projectReq.Project.WorkspaceId, fmt.Sprintf("%s-%s", projectReq.Project.WorkspaceId, projectReq.Project.Name)), nil
+}
+
+func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest) (string, error) {
+	if workspaceReq.Workspace.Target == "local" {
+		return filepath.Join(*p.BasePath, workspaceReq.Workspace.Id), nil
+	}
+
+	targetOptions, err := provider_types.ParseTargetOptions(workspaceReq.TargetOptions)
+	if err != nil {
+		return "", err
+	}
+
+	// Using path instead of filepath because we always want to use / as the separator
+	return path.Join(*targetOptions.WorkspaceDataDir, workspaceReq.Workspace.Id), nil
+}
+
+func (p *DockerProvider) getSshSessionConfig(targetOptionsJson string) (*ssh.SessionConfig, error) {
+	targetOptions, err := provider_types.ParseTargetOptions(targetOptionsJson)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ssh.SessionConfig{
+		Hostname:       *targetOptions.RemoteHostname,
+		Port:           *targetOptions.RemotePort,
+		Username:       *targetOptions.RemoteUser,
+		Password:       targetOptions.RemotePassword,
+		PrivateKeyPath: targetOptions.RemotePrivateKey,
+	}, nil
 }
