@@ -3,7 +3,7 @@ module github.com/daytonaio/daytona-provider-docker
 go 1.22.2
 
 require (
-	github.com/daytonaio/daytona v0.21.0
+	github.com/daytonaio/daytona v0.21.1
 	github.com/docker/docker v26.1.0+incompatible
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.6.0
@@ -57,7 +57,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
-	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a // indirect
 	github.com/tklauser/go-sysconf v0.3.13 // indirect
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/xanzy/go-gitlab v0.97.0 // indirect
