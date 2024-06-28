@@ -45,7 +45,7 @@ func (tun *SshTunnel) forward(localConn net.Conn) {
 		Info: fmt.Sprintf("accepted %s connection", tun.local.Type()),
 	})
 
-	remoteConn, err := tun.sshClient.Dial(tun.remote.Type(), tun.remote.String())
+	remoteConn, err := tun.SshClient.Dial(tun.remote.Type(), tun.remote.String())
 	if err != nil {
 		tun.tunneledState(&TunneledConnectionState{
 			From:  from,
@@ -57,7 +57,7 @@ func (tun *SshTunnel) forward(localConn net.Conn) {
 	}
 
 	connStr := fmt.Sprintf("%s -(%s)> %s -(ssh)> %s -(%s)> %s", from, tun.local.Type(), tun.local.String(),
-		tun.server.String(), tun.remote.Type(), tun.remote.String())
+		tun.Server.String(), tun.remote.Type(), tun.remote.String())
 
 	tun.tunneledState(&TunneledConnectionState{
 		From:   from,

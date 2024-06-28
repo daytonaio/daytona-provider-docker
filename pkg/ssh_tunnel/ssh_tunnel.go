@@ -26,15 +26,15 @@ type SshTunnel struct {
 	authKeyFile       string
 	authKeyReader     io.Reader
 	authPassword      string
-	server            *Endpoint
+	Server            *Endpoint
 	local             *Endpoint
 	remote            *Endpoint
 	timeout           time.Duration
 	connState         func(*SshTunnel, ConnectionState)
 	tunneledConnState func(*SshTunnel, *TunneledConnectionState)
 	active            int
-	sshClient         *ssh.Client
-	sshConfig         *ssh.ClientConfig
+	SshConfig         *ssh.ClientConfig
+	SshClient         *ssh.Client
 }
 
 // ConnectionState represents the state of the SSH tunnel. It's returned to an optional function provided to SetConnState.
@@ -80,7 +80,7 @@ func NewUnix(localUnixSocket string, server string, remoteUnixSocket string) *Ss
 func defaultSSHTun(server string) *SshTunnel {
 	return &SshTunnel{
 		mutex:    &sync.Mutex{},
-		server:   NewTCPEndpoint(server, 22),
+		Server:   NewTCPEndpoint(server, 22),
 		user:     "root",
 		authType: AuthTypeAuto,
 		timeout:  time.Second * 15,
@@ -89,7 +89,7 @@ func defaultSSHTun(server string) *SshTunnel {
 
 // SetPort changes the port where the SSH connection will be made.
 func (tun *SshTunnel) SetPort(port int) {
-	tun.server.port = port
+	tun.Server.port = port
 }
 
 // SetUser changes the user used to make the SSH connection.
@@ -195,11 +195,11 @@ func (tun *SshTunnel) Start(ctx context.Context) error {
 		tun.connState(tun, StateStarting)
 	}
 
-	config, err := tun.initSSHConfig()
+	config, err := tun.InitSSHConfig()
 	if err != nil {
 		return tun.stop(fmt.Errorf("ssh config failed: %w", err))
 	}
-	tun.sshConfig = config
+	tun.SshConfig = config
 
 	listenConfig := net.ListenConfig{}
 	localListener, err := listenConfig.Listen(tun.ctx, tun.local.Type(), tun.local.String())
@@ -229,7 +229,7 @@ func (tun *SshTunnel) Stop() {
 	}
 }
 
-func (tun *SshTunnel) initSSHConfig() (*ssh.ClientConfig, error) {
+func (tun *SshTunnel) InitSSHConfig() (*ssh.ClientConfig, error) {
 	config := &ssh.ClientConfig{
 		User: tun.user,
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
@@ -306,11 +306,11 @@ func (tun *SshTunnel) addConn() error {
 	defer tun.mutex.Unlock()
 
 	if tun.active == 0 {
-		sshClient, err := ssh.Dial(tun.server.Type(), tun.server.String(), tun.sshConfig)
+		sshClient, err := ssh.Dial(tun.Server.Type(), tun.Server.String(), tun.SshConfig)
 		if err != nil {
-			return fmt.Errorf("ssh dial %s to %s failed: %w", tun.server.Type(), tun.server.String(), err)
+			return fmt.Errorf("ssh dial %s to %s failed: %w", tun.Server.Type(), tun.Server.String(), err)
 		}
-		tun.sshClient = sshClient
+		tun.SshClient = sshClient
 	}
 
 	tun.active += 1
@@ -325,7 +325,7 @@ func (tun *SshTunnel) removeConn() {
 	tun.active -= 1
 
 	if tun.active == 0 {
-		tun.sshClient.Close()
-		tun.sshClient = nil
+		tun.SshClient.Close()
+		tun.SshClient = nil
 	}
 }
