@@ -2,9 +2,7 @@ package provider
 
 import (
 	"errors"
-	"fmt"
 	"io"
-	"os"
 
 	log_writers "github.com/daytonaio/daytona-provider-docker/internal/log"
 
@@ -29,7 +27,20 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		return new(provider_util.Empty), err
 	}
 
-	return new(provider_util.Empty), dockerClient.CreateWorkspace(workspaceReq.Workspace, logWriter)
+	workspaceDir, err := p.getWorkspaceDir(workspaceReq)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	sshClient, err := p.getSshClient(workspaceReq.Workspace.Target, workspaceReq.TargetOptions)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+	if sshClient != nil {
+		defer sshClient.Close()
+	}
+
+	return new(provider_util.Empty), dockerClient.CreateWorkspace(workspaceReq.Workspace, workspaceDir, logWriter, sshClient)
 }
 
 func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
@@ -55,38 +66,25 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 		return new(provider_util.Empty), err
 	}
 
-	var sshSessionConfig *ssh.SessionConfig
+	var sshClient *ssh.Client
 	if projectReq.Project.Target == "local" {
 		if projectReq.Project.Build == nil {
 			p.setLocalEnvOverride(projectReq.Project)
 		}
-		err = os.MkdirAll(projectDir, 0755)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
 	} else {
-		sshSessionConfig, err = p.getSshSessionConfig(projectReq.TargetOptions)
+		sshClient, err = p.getSshClient(projectReq.Project.Target, projectReq.TargetOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
-
-		client, err := ssh.NewClient(sshSessionConfig)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
-		defer client.Close()
-		err = client.Exec(fmt.Sprintf("mkdir -p %s", projectDir), nil)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
+		defer sshClient.Close()
 	}
 
 	return new(provider_util.Empty), dockerClient.CreateProject(&docker.CreateProjectOptions{
-		Project:          projectReq.Project,
-		ProjectDir:       projectDir,
-		Cr:               projectReq.ContainerRegistry,
-		LogWriter:        logWriter,
-		Gpc:              projectReq.GitProviderConfig,
-		SshSessionConfig: sshSessionConfig,
+		Project:    projectReq.Project,
+		ProjectDir: projectDir,
+		Cr:         projectReq.ContainerRegistry,
+		LogWriter:  logWriter,
+		Gpc:        projectReq.GitProviderConfig,
+		SshClient:  sshClient,
 	})
 }
