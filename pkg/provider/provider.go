@@ -109,36 +109,22 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 		return new(provider_util.Empty), err
 	}
 
-	err = dockerClient.DestroyWorkspace(workspaceReq.Workspace)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
 	workspaceDir, err := p.getWorkspaceDir(workspaceReq)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	if workspaceReq.Workspace.Target == "local" {
-		err = os.RemoveAll(workspaceDir)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
-	} else {
-		sshSessionConfig, err := p.getSshSessionConfig(workspaceReq.TargetOptions)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
-		client, err := ssh.NewClient(sshSessionConfig)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
-		defer client.Close()
+	sshClient, err := p.getSshClient(workspaceReq.Workspace.Target, workspaceReq.TargetOptions)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+	if sshClient != nil {
+		defer sshClient.Close()
+	}
 
-		err = client.Exec(fmt.Sprintf("rm -rf %s", workspaceDir), nil)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
+	err = dockerClient.DestroyWorkspace(workspaceReq.Workspace, workspaceDir, sshClient)
+	if err != nil {
+		return new(provider_util.Empty), err
 	}
 
 	return new(provider_util.Empty), nil
@@ -173,7 +159,7 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*prov
 	}
 
 	downloadUrl := *p.DaytonaDownloadUrl
-	var sshSessionConfig *ssh.SessionConfig
+	var sshClient *ssh.Client
 
 	if projectReq.Project.Target == "local" {
 		if projectReq.Project.Build == nil {
@@ -186,19 +172,20 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*prov
 			downloadUrl = parsed.String()
 		}
 	} else {
-		sshSessionConfig, err = p.getSshSessionConfig(projectReq.TargetOptions)
+		sshClient, err = p.getSshClient(projectReq.Project.Target, projectReq.TargetOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
+		defer sshClient.Close()
 	}
 
 	err = dockerClient.StartProject(&docker.CreateProjectOptions{
-		Project:          projectReq.Project,
-		ProjectDir:       projectDir,
-		Cr:               projectReq.ContainerRegistry,
-		LogWriter:        logWriter,
-		Gpc:              projectReq.GitProviderConfig,
-		SshSessionConfig: sshSessionConfig,
+		Project:    projectReq.Project,
+		ProjectDir: projectDir,
+		Cr:         projectReq.ContainerRegistry,
+		LogWriter:  logWriter,
+		Gpc:        projectReq.GitProviderConfig,
+		SshClient:  sshClient,
 	}, downloadUrl)
 	if err != nil {
 		return new(provider_util.Empty), err
@@ -237,36 +224,22 @@ func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*pr
 		return new(provider_util.Empty), err
 	}
 
-	err = dockerClient.DestroyProject(projectReq.Project)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
 	projectDir, err := p.getProjectDir(projectReq)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	if projectReq.Project.Target == "local" {
-		err = os.RemoveAll(projectDir)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
-	} else {
-		sshSessionConfig, err := p.getSshSessionConfig(projectReq.TargetOptions)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
-		client, err := ssh.NewClient(sshSessionConfig)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
-		defer client.Close()
+	sshClient, err := p.getSshClient(projectReq.Project.Target, projectReq.TargetOptions)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+	if sshClient != nil {
+		defer sshClient.Close()
+	}
 
-		err = client.Exec(fmt.Sprintf("rm -rf %s", projectDir), nil)
-		if err != nil {
-			return new(provider_util.Empty), err
-		}
+	err = dockerClient.DestroyProject(projectReq.Project, projectDir, sshClient)
+	if err != nil {
+		return new(provider_util.Empty), err
 	}
 
 	return new(provider_util.Empty), nil
@@ -331,17 +304,21 @@ func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest
 	return path.Join(*targetOptions.WorkspaceDataDir, workspaceReq.Workspace.Id), nil
 }
 
-func (p *DockerProvider) getSshSessionConfig(targetOptionsJson string) (*ssh.SessionConfig, error) {
+func (p *DockerProvider) getSshClient(targetName string, targetOptionsJson string) (*ssh.Client, error) {
+	if targetName == "local" {
+		return nil, nil
+	}
+
 	targetOptions, err := provider_types.ParseTargetOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ssh.SessionConfig{
+	return ssh.NewClient(&ssh.SessionConfig{
 		Hostname:       *targetOptions.RemoteHostname,
 		Port:           *targetOptions.RemotePort,
 		Username:       *targetOptions.RemoteUser,
 		Password:       targetOptions.RemotePassword,
 		PrivateKeyPath: targetOptions.RemotePrivateKey,
-	}, nil
+	})
 }
