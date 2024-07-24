@@ -21,6 +21,7 @@ import (
 	provider_util "github.com/daytonaio/daytona/pkg/provider/util"
 	"github.com/daytonaio/daytona/pkg/ssh"
 	"github.com/daytonaio/daytona/pkg/workspace"
+	"github.com/daytonaio/daytona/pkg/workspace/project"
 )
 
 type DockerProvider struct {
@@ -245,7 +246,7 @@ func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*pr
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetProjectInfo(projectReq *provider.ProjectRequest) (*workspace.ProjectInfo, error) {
+func (p DockerProvider) GetProjectInfo(projectReq *provider.ProjectRequest) (*project.ProjectInfo, error) {
 	dockerClient, err := p.getClient(projectReq.TargetOptions)
 	if err != nil {
 		return nil, err
@@ -271,7 +272,7 @@ func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClien
 }
 
 // If the project is running locally, we override the env vars to use the host.docker.internal address
-func (p DockerProvider) setLocalEnvOverride(project *workspace.Project) {
+func (p DockerProvider) setLocalEnvOverride(project *project.Project) {
 	project.EnvVars["DAYTONA_SERVER_URL"] = fmt.Sprintf("http://host.docker.internal:%d", *p.ServerPort)
 	project.EnvVars["DAYTONA_SERVER_API_URL"] = fmt.Sprintf("http://host.docker.internal:%d", *p.ApiPort)
 }
