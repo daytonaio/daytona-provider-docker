@@ -673,8 +673,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davidmz/go-pageant v1.0.2 h1:bPblRCh5jGU+Uptpz6LgMZGD5hJoOt7otgT454WvHn0=
 github.com/davidmz/go-pageant v1.0.2/go.mod h1:P2EDDnMqIwG5Rrp05dTRITj9z2zpGcD9efWSkTNKLIE=
-github.com/daytonaio/daytona v0.22.0 h1:JW9VY3iNZv0lAc06hux5hnJBaCQnmti35D4ZGKT7OjU=
-github.com/daytonaio/daytona v0.22.0/go.mod h1:Wt2JaDzVbwyOKSj4/g//+TQrdZk0WP6IvUgUDanHVHI=
+github.com/daytonaio/daytona v0.23.2-0.20240731203426-19d9ac5ef798 h1:7yiEQ2w1UWooNb2GkuIqBY4r8lVFhiuWS+jc4RKSv8E=
+github.com/daytonaio/daytona v0.23.2-0.20240731203426-19d9ac5ef798/go.mod h1:8yXvTGwapmO6ygfj2jMR9wWwjbpW7HBGNm8ALAeqFMQ=
 github.com/distribution/reference v0.6.0 h1:0IXCQ5g4/QMHHkarYzh5l+u8T3t73zM5QvfrDyIgxBk=
 github.com/distribution/reference v0.6.0/go.mod h1:BbU0aIcezP1/5jX/8MP0YiH4SdvB5Y4f/wlDRiLyi3E=
 github.com/docker/docker v26.1.0+incompatible h1:W1G9MPNbskA6VZWL7b3ZljTh0pXI68FpINx0GKaOdaM=

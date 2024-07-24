@@ -11,6 +11,8 @@ import (
 	"github.com/daytonaio/daytona/pkg/gitprovider"
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/workspace"
+	"github.com/daytonaio/daytona/pkg/workspace/project"
+	"github.com/daytonaio/daytona/pkg/workspace/project/config"
 
 	docker_provider "github.com/daytonaio/daytona-provider-docker/pkg/provider"
 	provider_types "github.com/daytonaio/daytona-provider-docker/pkg/types"
@@ -24,14 +26,16 @@ var targetOptions = &provider_types.TargetOptions{}
 var sockDir = "/tmp/target-socks"
 var optionsString string
 
-var project1 = &workspace.Project{
-	Name: "test",
-	Repository: &gitprovider.GitRepository{
-		Id:   "123",
-		Url:  "https://github.com/daytonaio/daytona",
-		Name: "daytona",
+var project1 = &project.Project{
+	ProjectConfig: config.ProjectConfig{
+		Name: "test",
+		Repository: &gitprovider.GitRepository{
+			Id:   "123",
+			Url:  "https://github.com/daytonaio/daytona",
+			Name: "daytona",
+		},
+		Image: "daytonaio/workspace-project:latest",
 	},
-	Image:       "daytonaio/workspace-project:latest",
 	WorkspaceId: "123",
 }
 
@@ -39,12 +43,12 @@ var workspace1 = &workspace.Workspace{
 	Id:     "123",
 	Name:   "test",
 	Target: "local",
-	Projects: []*workspace.Project{
+	Projects: []*project.Project{
 		project1,
 	},
 }
 
-func GetContainerName(project *workspace.Project) string {
+func GetContainerName(project *project.Project) string {
 	dockerClient := docker.NewDockerClient(docker.DockerClientConfig{})
 
 	return dockerClient.GetProjectContainerName(project)
