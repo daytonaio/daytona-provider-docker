@@ -68,7 +68,7 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 
 	var sshClient *ssh.Client
 	if projectReq.Project.Target == "local" {
-		if projectReq.Project.Build == nil {
+		if projectReq.Project.BuildConfig == nil {
 			p.setLocalEnvOverride(projectReq.Project)
 		}
 	} else {
