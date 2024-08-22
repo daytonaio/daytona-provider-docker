@@ -16,7 +16,7 @@ import (
 func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(*p.LogsDir)
+		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
 		wsLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter)
 		defer wsLogWriter.Close()
@@ -50,7 +50,7 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(*p.LogsDir)
+		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
 		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.WorkspaceId, projectReq.Project.Name, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, projectLogWriter)
 		defer projectLogWriter.Close()
