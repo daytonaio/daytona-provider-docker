@@ -12,7 +12,6 @@ import (
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/workspace"
 	"github.com/daytonaio/daytona/pkg/workspace/project"
-	"github.com/daytonaio/daytona/pkg/workspace/project/config"
 
 	docker_provider "github.com/daytonaio/daytona-provider-docker/pkg/provider"
 	provider_types "github.com/daytonaio/daytona-provider-docker/pkg/types"
@@ -27,15 +26,13 @@ var sockDir = "/tmp/target-socks"
 var optionsString string
 
 var project1 = &project.Project{
-	ProjectConfig: config.ProjectConfig{
-		Name: "test",
-		Repository: &gitprovider.GitRepository{
-			Id:   "123",
-			Url:  "https://github.com/daytonaio/daytona",
-			Name: "daytona",
-		},
-		Image: "daytonaio/workspace-project:latest",
+	Name: "test",
+	Repository: &gitprovider.GitRepository{
+		Id:   "123",
+		Url:  "https://github.com/daytonaio/daytona",
+		Name: "daytona",
 	},
+	Image:       "daytonaio/workspace-project:latest",
 	WorkspaceId: "123",
 }
 
