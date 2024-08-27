@@ -153,7 +153,7 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*prov
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(*p.LogsDir)
+		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
 		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.WorkspaceId, projectReq.Project.Name, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, projectLogWriter)
 		defer projectLogWriter.Close()
@@ -210,7 +210,7 @@ func (p DockerProvider) StopProject(projectReq *provider.ProjectRequest) (*provi
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(*p.LogsDir)
+		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
 		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.WorkspaceId, projectReq.Project.Name, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, projectLogWriter)
 		defer projectLogWriter.Close()
