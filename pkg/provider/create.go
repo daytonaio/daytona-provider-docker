@@ -67,17 +67,24 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 	}
 
 	var sshClient *ssh.Client
-	if projectReq.Project.Target == "local" {
-		if projectReq.Project.BuildConfig == nil {
-			p.setLocalEnvOverride(projectReq.Project)
-		}
-	} else {
+	if projectReq.Project.Target != "local" {
 		sshClient, err = p.getSshClient(projectReq.Project.Target, projectReq.TargetOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
 		defer sshClient.Close()
 	}
+	// TODO: think about how to handle this since the project is cloned in dockerClient.CreateProject so we can't detect the builder type here
+	// else {
+	// 	builderType, err := detect.DetectProjectBuilderType(projectReq.Project.BuildConfig, projectDir, nil)
+	// 	if err != nil {
+	// 		return new(provider_util.Empty), err
+	// 	}
+
+	// 	if builderType != detect.BuilderTypeDevcontainer {
+	// 		p.setLocalEnvOverride(projectReq.Project)
+	// 	}
+	// }
 
 	return new(provider_util.Empty), dockerClient.CreateProject(&docker.CreateProjectOptions{
 		Project:    projectReq.Project,

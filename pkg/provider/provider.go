@@ -15,6 +15,7 @@ import (
 	"github.com/daytonaio/daytona-provider-docker/pkg/client"
 	provider_types "github.com/daytonaio/daytona-provider-docker/pkg/types"
 
+	"github.com/daytonaio/daytona/pkg/build/detect"
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logs"
 	"github.com/daytonaio/daytona/pkg/provider"
@@ -163,11 +164,17 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*prov
 	var sshClient *ssh.Client
 
 	if projectReq.Project.Target == "local" {
-		if projectReq.Project.BuildConfig == nil {
+		builderType, err := detect.DetectProjectBuilderType(projectReq.Project.BuildConfig, projectDir, nil)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+
+		if builderType != detect.BuilderTypeDevcontainer {
 			parsed, err := url.Parse(downloadUrl)
 			if err != nil {
 				return new(provider_util.Empty), err
 			}
+
 			parsed.Host = fmt.Sprintf("host.docker.internal:%d", *p.ApiPort)
 			parsed.Scheme = "http"
 			downloadUrl = parsed.String()
