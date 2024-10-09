@@ -71,8 +71,11 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*pr
 }
 
 func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
+	label := "Docker"
+
 	return provider.ProviderInfo{
 		Name:    "docker-provider",
+		Label:   &label,
 		Version: internal.Version,
 	}, nil
 }
