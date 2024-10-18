@@ -46,7 +46,7 @@ The Docker Provider allows Daytona to create workspace projects as Docker contai
 | Remote Password         	| String   	| true     	|                             	| true        	| ^local$           	|
 | Remote Private Key Path 	| FilePath 	| true     	|                             	| false       	| ^local$           	|
 
-### Default Targets
+### Preset Targets
 
 #### Local
 | Property        	| Value                       	|

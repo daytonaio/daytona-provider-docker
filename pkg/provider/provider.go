@@ -84,20 +84,20 @@ func (p DockerProvider) GetTargetManifest() (*provider.ProviderTargetManifest, e
 	return provider_types.GetTargetManifest(), nil
 }
 
-func (p DockerProvider) GetDefaultTargets() (*[]provider.ProviderTarget, error) {
+func (p DockerProvider) GetPresetTargets() (*[]provider.ProviderTarget, error) {
 	info, err := p.GetInfo()
 	if err != nil {
 		return nil, err
 	}
 
-	defaultTargets := []provider.ProviderTarget{
+	presetTargets := []provider.ProviderTarget{
 		{
 			Name:         "local",
 			ProviderInfo: info,
 			Options:      "{\n\t\"Sock Path\": \"/var/run/docker.sock\"\n}",
 		},
 	}
-	return &defaultTargets, nil
+	return &presetTargets, nil
 }
 
 func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
