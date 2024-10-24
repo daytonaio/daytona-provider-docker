@@ -21,7 +21,7 @@ import (
 )
 
 var dockerProvider = &docker_provider.DockerProvider{}
-var targetOptions = &provider_types.TargetOptions{}
+var targetOptions = &provider_types.TargetConfigOptions{}
 var sockDir = "/tmp/target-socks"
 var optionsString string
 
@@ -37,9 +37,9 @@ var project1 = &project.Project{
 }
 
 var workspace1 = &workspace.Workspace{
-	Id:     "123",
-	Name:   "test",
-	Target: "local",
+	Id:           "123",
+	Name:         "test",
+	TargetConfig: "local",
 	Projects: []*project.Project{
 		project1,
 	},
@@ -53,8 +53,8 @@ func GetContainerName(project *project.Project) string {
 
 func TestCreateWorkspace(t *testing.T) {
 	wsReq := &provider.WorkspaceRequest{
-		TargetOptions: optionsString,
-		Workspace:     workspace1,
+		TargetConfigOptions: optionsString,
+		Workspace:           workspace1,
 	}
 
 	_, err := dockerProvider.CreateWorkspace(wsReq)
@@ -70,8 +70,8 @@ func TestCreateWorkspace(t *testing.T) {
 
 func TestGetWorkspaceInfo(t *testing.T) {
 	wsReq := &provider.WorkspaceRequest{
-		TargetOptions: optionsString,
-		Workspace:     workspace1,
+		TargetConfigOptions: optionsString,
+		Workspace:           workspace1,
 	}
 
 	workspaceInfo, err := dockerProvider.GetWorkspaceInfo(wsReq)
@@ -92,8 +92,8 @@ func TestGetWorkspaceInfo(t *testing.T) {
 
 func TestDestroyWorkspace(t *testing.T) {
 	wsReq := &provider.WorkspaceRequest{
-		TargetOptions: optionsString,
-		Workspace:     workspace1,
+		TargetConfigOptions: optionsString,
+		Workspace:           workspace1,
 	}
 
 	_, err := dockerProvider.DestroyWorkspace(wsReq)
@@ -116,8 +116,8 @@ func TestCreateProject(t *testing.T) {
 	TestCreateWorkspace(t)
 
 	projectReq := &provider.ProjectRequest{
-		TargetOptions: optionsString,
-		Project:       project1,
+		TargetConfigOptions: optionsString,
+		Project:             project1,
 	}
 
 	_, err := dockerProvider.CreateProject(projectReq)
@@ -133,8 +133,8 @@ func TestCreateProject(t *testing.T) {
 
 func TestDestroyProject(t *testing.T) {
 	projectReq := &provider.ProjectRequest{
-		TargetOptions: optionsString,
-		Project:       project1,
+		TargetConfigOptions: optionsString,
+		Project:             project1,
 	}
 
 	_, err := dockerProvider.DestroyProject(projectReq)

@@ -22,7 +22,7 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		defer wsLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
+	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -32,7 +32,7 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(workspaceReq.Workspace.Target, workspaceReq.TargetOptions)
+	sshClient, err := p.getSshClient(workspaceReq.Workspace.TargetConfig, workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -56,7 +56,7 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 		defer projectLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -67,24 +67,13 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 	}
 
 	var sshClient *ssh.Client
-	if projectReq.Project.Target != "local" {
-		sshClient, err = p.getSshClient(projectReq.Project.Target, projectReq.TargetOptions)
+	if projectReq.Project.TargetConfig != "local" {
+		sshClient, err = p.getSshClient(projectReq.Project.TargetConfig, projectReq.TargetConfigOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
 		defer sshClient.Close()
 	}
-	// TODO: think about how to handle this since the project is cloned in dockerClient.CreateProject so we can't detect the builder type here
-	// else {
-	// 	builderType, err := detect.DetectProjectBuilderType(projectReq.Project.BuildConfig, projectDir, nil)
-	// 	if err != nil {
-	// 		return new(provider_util.Empty), err
-	// 	}
-
-	// 	if builderType != detect.BuilderTypeDevcontainer {
-	// 		p.setLocalEnvOverride(projectReq.Project)
-	// 	}
-	// }
 
 	return new(provider_util.Empty), dockerClient.CreateProject(&docker.CreateProjectOptions{
 		Project:                  projectReq.Project,

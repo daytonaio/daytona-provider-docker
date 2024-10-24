@@ -82,17 +82,17 @@ func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
 	}, nil
 }
 
-func (p DockerProvider) GetTargetManifest() (*provider.ProviderTargetManifest, error) {
+func (p DockerProvider) GetTargetConfigManifest() (*provider.TargetConfigManifest, error) {
 	return provider_types.GetTargetManifest(), nil
 }
 
-func (p DockerProvider) GetPresetTargets() (*[]provider.ProviderTarget, error) {
+func (p DockerProvider) GetPresetTargetConfigs() (*[]provider.TargetConfig, error) {
 	info, err := p.GetInfo()
 	if err != nil {
 		return nil, err
 	}
 
-	presetTargets := []provider.ProviderTarget{
+	presetTargets := []provider.TargetConfig{
 		{
 			Name:         "local",
 			ProviderInfo: info,
@@ -111,7 +111,7 @@ func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (
 }
 
 func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
+	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -121,7 +121,7 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(workspaceReq.Workspace.Target, workspaceReq.TargetOptions)
+	sshClient, err := p.getSshClient(workspaceReq.Workspace.TargetConfig, workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -138,7 +138,7 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*workspace.WorkspaceInfo, error) {
-	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
+	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -168,7 +168,7 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*prov
 	downloadUrl := *p.DaytonaDownloadUrl
 	var sshClient *ssh.Client
 
-	if projectReq.Project.Target == "local" {
+	if projectReq.Project.TargetConfig == "local" {
 		builderType, err := detect.DetectProjectBuilderType(projectReq.Project.BuildConfig, projectDir, nil)
 		if err != nil {
 			return new(provider_util.Empty), err
@@ -185,7 +185,7 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*prov
 			downloadUrl = parsed.String()
 		}
 	} else {
-		sshClient, err = p.getSshClient(projectReq.Project.Target, projectReq.TargetOptions)
+		sshClient, err = p.getSshClient(projectReq.Project.TargetConfig, projectReq.TargetConfigOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
@@ -217,7 +217,7 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*prov
 }
 
 func (p DockerProvider) StopProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -234,7 +234,7 @@ func (p DockerProvider) StopProject(projectReq *provider.ProjectRequest) (*provi
 }
 
 func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -244,7 +244,7 @@ func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*pr
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(projectReq.Project.Target, projectReq.TargetOptions)
+	sshClient, err := p.getSshClient(projectReq.Project.TargetConfig, projectReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -261,7 +261,7 @@ func (p DockerProvider) DestroyProject(projectReq *provider.ProjectRequest) (*pr
 }
 
 func (p DockerProvider) GetProjectInfo(projectReq *provider.ProjectRequest) (*project.ProjectInfo, error) {
-	dockerClient, err := p.getClient(projectReq.TargetOptions)
+	dockerClient, err := p.getClient(projectReq.TargetConfigOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func (p DockerProvider) GetProjectInfo(projectReq *provider.ProjectRequest) (*pr
 }
 
 func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClient, error) {
-	targetOptions, err := provider_types.ParseTargetOptions(targetOptionsJson)
+	targetOptions, err := provider_types.ParseTargetConfigOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
 	}
@@ -330,11 +330,11 @@ func (p DockerProvider) setLocalEnvOverride(project *project.Project) {
 }
 
 func (p *DockerProvider) getProjectDir(projectReq *provider.ProjectRequest) (string, error) {
-	if projectReq.Project.Target == "local" {
+	if projectReq.Project.TargetConfig == "local" {
 		return filepath.Join(*p.BasePath, projectReq.Project.WorkspaceId, fmt.Sprintf("%s-%s", projectReq.Project.WorkspaceId, projectReq.Project.Name)), nil
 	}
 
-	targetOptions, err := provider_types.ParseTargetOptions(projectReq.TargetOptions)
+	targetOptions, err := provider_types.ParseTargetConfigOptions(projectReq.TargetConfigOptions)
 	if err != nil {
 		return "", err
 	}
@@ -344,11 +344,11 @@ func (p *DockerProvider) getProjectDir(projectReq *provider.ProjectRequest) (str
 }
 
 func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest) (string, error) {
-	if workspaceReq.Workspace.Target == "local" {
+	if workspaceReq.Workspace.TargetConfig == "local" {
 		return filepath.Join(*p.BasePath, workspaceReq.Workspace.Id), nil
 	}
 
-	targetOptions, err := provider_types.ParseTargetOptions(workspaceReq.TargetOptions)
+	targetOptions, err := provider_types.ParseTargetConfigOptions(workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return "", err
 	}
@@ -362,7 +362,7 @@ func (p *DockerProvider) getSshClient(targetName string, targetOptionsJson strin
 		return nil, nil
 	}
 
-	targetOptions, err := provider_types.ParseTargetOptions(targetOptionsJson)
+	targetOptions, err := provider_types.ParseTargetConfigOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
 	}
