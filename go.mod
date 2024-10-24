@@ -15,6 +15,8 @@ require (
 	golang.org/x/term v0.23.0
 )
 
+replace github.com/daytonaio/daytona => /workspaces/daytona
+
 require (
 	code.gitea.io/sdk/gitea v0.17.1 // indirect
 	dario.cat/mergo v1.0.1 // indirect
@@ -59,6 +61,7 @@ require (
 	github.com/go-playground/webhooks/v6 v6.4.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect

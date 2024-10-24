@@ -16,7 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func GetClient(targetOptions types.TargetOptions, sockDir string) (*client.Client, error) {
+func GetClient(targetOptions types.TargetConfigOptions, sockDir string) (*client.Client, error) {
 	if targetOptions.RemoteHostname == nil {
 		return getLocalClient(targetOptions)
 	}
@@ -24,7 +24,7 @@ func GetClient(targetOptions types.TargetOptions, sockDir string) (*client.Clien
 	return getRemoteClient(targetOptions, sockDir)
 }
 
-func getLocalClient(targetOptions types.TargetOptions) (*client.Client, error) {
+func getLocalClient(targetOptions types.TargetConfigOptions) (*client.Client, error) {
 	schema := "unix://"
 	if runtime.GOOS == "windows" {
 		schema = "npipe://"
@@ -47,7 +47,7 @@ func getLocalClient(targetOptions types.TargetOptions) (*client.Client, error) {
 	return cli, nil
 }
 
-func getRemoteClient(targetOptions types.TargetOptions, sockDir string) (*client.Client, error) {
+func getRemoteClient(targetOptions types.TargetConfigOptions, sockDir string) (*client.Client, error) {
 	localSockPath, err := forwardDockerSock(targetOptions, sockDir)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func getRemoteClient(targetOptions types.TargetOptions, sockDir string) (*client
 	return cli, nil
 }
 
-func forwardDockerSock(targetOptions types.TargetOptions, sockDir string) (string, error) {
+func forwardDockerSock(targetOptions types.TargetConfigOptions, sockDir string) (string, error) {
 	localSockPath := path.Join(sockDir, fmt.Sprintf("daytona-%s-docker.sock", strings.ReplaceAll(*targetOptions.RemoteHostname, ".", "-")))
 
 	if _, err := os.Stat(path.Dir(localSockPath)); err != nil {
