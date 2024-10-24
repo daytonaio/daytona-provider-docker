@@ -1,5 +1,5 @@
 package types
 
-type WorkspaceMetadata struct {
+type TargetMetadata struct {
 	NetworkId string
 }

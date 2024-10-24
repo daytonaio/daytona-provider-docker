@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ForwardRemoteUnixSock(ctx context.Context, targetOptions types.TargetOptions, localSock string, remoteSock string) (chan bool, chan error) {
+func ForwardRemoteUnixSock(ctx context.Context, targetOptions types.TargetConfigOptions, localSock string, remoteSock string) (chan bool, chan error) {
 	if targetOptions.RemoteHostname == nil {
 		errChan := make(chan error)
 		errChan <- errors.New("Remote Hostname is required")
