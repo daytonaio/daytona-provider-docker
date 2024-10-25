@@ -13,26 +13,26 @@ import (
 	"github.com/daytonaio/daytona/pkg/ssh"
 )
 
-func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
+func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provider_util.Empty, error) {
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		wsLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, logs.LogSourceProvider)
+		wsLogWriter := loggerFactory.CreateTargetLogger(targetReq.Target.Id, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter)
 		defer wsLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(targetReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	workspaceDir, err := p.getWorkspaceDir(workspaceReq)
+	workspaceDir, err := p.getTargetDir(targetReq)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(workspaceReq.Workspace.TargetConfig, workspaceReq.TargetConfigOptions)
+	sshClient, err := p.getSshClient(targetReq.Target.TargetConfig, targetReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -40,7 +40,7 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		defer sshClient.Close()
 	}
 
-	return new(provider_util.Empty), dockerClient.CreateWorkspace(workspaceReq.Workspace, workspaceDir, logWriter, sshClient)
+	return new(provider_util.Empty), dockerClient.CreateTarget(targetReq.Target, workspaceDir, logWriter, sshClient)
 }
 
 func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
@@ -51,7 +51,7 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.WorkspaceId, projectReq.Project.Name, logs.LogSourceProvider)
+		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.TargetId, projectReq.Project.Name, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, projectLogWriter)
 		defer projectLogWriter.Close()
 	}
