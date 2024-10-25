@@ -16,7 +16,6 @@
 
 </div>
 
-
 <h1 align="center">Daytona Docker Provider</h1>
 <div align="center">
 This repository is the home of the <a href="https://github.com/daytonaio/daytona">Daytona</a> Docker Provider.
@@ -33,26 +32,26 @@ This repository is the home of the <a href="https://github.com/daytonaio/daytona
   <a href="https://twitter.com/Daytonaio">Twitter</a>
 </p>
 
-The Docker Provider allows Daytona to create workspace projects as Docker containers on your local or remote machine. It is a default provider in Daytona, which means it is installed with every server by default.
+The Docker Provider allows Daytona to create workspaces as Docker containers on your local or remote machine. It is a default provider in Daytona, which means it is installed with every server by default.
 
 ## Target Options
 
-| Property                	| Type     	| Optional 	| DefaultValue                	| InputMasked 	| DisabledPredicate 	|
-|-------------------------	|----------	|----------	|-----------------------------	|-------------	|-------------------	|
-| Sock Path               	| String   	| true     	| /var/run/docker.sock        	| false       	|                   	|
-| Remote Hostname         	| String   	| true     	|                             	| false       	| ^local$           	|
-| Remote Port             	| Int      	| true     	| 22                          	| false       	| ^local$           	|
-| Remote User             	| String   	| true     	|                             	| false       	| ^local$           	|
-| Remote Password         	| String   	| true     	|                             	| true        	| ^local$           	|
-| Remote Private Key Path 	| FilePath 	| true     	|                             	| false       	| ^local$           	|
+| Property                | Type     | Optional | DefaultValue         | InputMasked | DisabledPredicate |
+| ----------------------- | -------- | -------- | -------------------- | ----------- | ----------------- |
+| Sock Path               | String   | true     | /var/run/docker.sock | false       |                   |
+| Remote Hostname         | String   | true     |                      | false       | ^local$           |
+| Remote Port             | Int      | true     | 22                   | false       | ^local$           |
+| Remote User             | String   | true     |                      | false       | ^local$           |
+| Remote Password         | String   | true     |                      | true        | ^local$           |
+| Remote Private Key Path | FilePath | true     |                      | false       | ^local$           |
 
 ### Preset Targets
 
 #### Local
-| Property        	| Value                       	|
-|-----------------	|-----------------------------	|
-| Sock Path       	| /var/run/docker.sock        	|
 
+| Property  | Value                |
+| --------- | -------------------- |
+| Sock Path | /var/run/docker.sock |
 
 ## Code of Conduct
 

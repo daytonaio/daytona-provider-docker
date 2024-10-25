@@ -17,9 +17,9 @@ func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provid
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		wsLogWriter := loggerFactory.CreateTargetLogger(targetReq.Target.Id, logs.LogSourceProvider)
-		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter)
-		defer wsLogWriter.Close()
+		targetLogWriter := loggerFactory.CreateTargetLogger(targetReq.Target.Id, logs.LogSourceProvider)
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, targetLogWriter)
+		defer targetLogWriter.Close()
 	}
 
 	dockerClient, err := p.getClient(targetReq.TargetConfigOptions)
@@ -27,7 +27,7 @@ func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provid
 		return new(provider_util.Empty), err
 	}
 
-	workspaceDir, err := p.getTargetDir(targetReq)
+	targetDir, err := p.getTargetDir(targetReq)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -40,7 +40,7 @@ func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provid
 		defer sshClient.Close()
 	}
 
-	return new(provider_util.Empty), dockerClient.CreateTarget(targetReq.Target, workspaceDir, logWriter, sshClient)
+	return new(provider_util.Empty), dockerClient.CreateTarget(targetReq.Target, targetDir, logWriter, sshClient)
 }
 
 func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
