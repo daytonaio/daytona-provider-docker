@@ -13,7 +13,7 @@ type TargetConfigOptions struct {
 	RemotePassword   *string `json:"Remote Password,omitempty"`
 	RemotePrivateKey *string `json:"Remote Private Key Path,omitempty"`
 	SockPath         *string `json:"Sock Path,omitempty"`
-	WorkspaceDataDir *string `json:"Workspace Data Dir,omitempty"`
+	TargetDataDir    *string `json:"Target Data Dir,omitempty"`
 }
 
 func GetTargetManifest() *provider.TargetConfigManifest {
@@ -47,10 +47,10 @@ func GetTargetManifest() *provider.TargetConfigManifest {
 			Type:         provider.TargetConfigPropertyTypeString,
 			DefaultValue: "/var/run/docker.sock",
 		},
-		"Workspace Data Dir": provider.TargetConfigProperty{
+		"Target Data Dir": provider.TargetConfigProperty{
 			Type:              provider.TargetConfigPropertyTypeString,
 			DefaultValue:      "/tmp/daytona-data",
-			Description:       "The directory on the remote host where the workspace data will be stored",
+			Description:       "The directory on the remote host where the target data will be stored",
 			DisabledPredicate: "^local$",
 		},
 	}
