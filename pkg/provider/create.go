@@ -43,7 +43,7 @@ func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provid
 	return new(provider_util.Empty), dockerClient.CreateTarget(targetReq.Target, targetDir, logWriter, sshClient)
 }
 
-func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
+func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
 	if p.DaytonaDownloadUrl == nil {
 		return new(provider_util.Empty), errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
 	}
@@ -51,36 +51,36 @@ func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*pro
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.TargetId, projectReq.Project.Name, logs.LogSourceProvider)
-		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, projectLogWriter)
-		defer projectLogWriter.Close()
+		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
+		defer workspaceLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(projectReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	projectDir, err := p.getProjectDir(projectReq)
+	workspaceDir, err := p.getWorkspaceDir(workspaceReq)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
 	var sshClient *ssh.Client
-	if projectReq.Project.TargetConfig != "local" {
-		sshClient, err = p.getSshClient(projectReq.Project.TargetConfig, projectReq.TargetConfigOptions)
+	if workspaceReq.Workspace.TargetConfig != "local" {
+		sshClient, err = p.getSshClient(workspaceReq.Workspace.TargetConfig, workspaceReq.TargetConfigOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
 		defer sshClient.Close()
 	}
 
-	return new(provider_util.Empty), dockerClient.CreateProject(&docker.CreateProjectOptions{
-		Project:    projectReq.Project,
-		ProjectDir: projectDir,
-		Cr:         projectReq.ContainerRegistry,
-		LogWriter:  logWriter,
-		Gpc:        projectReq.GitProviderConfig,
-		SshClient:  sshClient,
+	return new(provider_util.Empty), dockerClient.CreateWorkspace(&docker.CreateWorkspaceOptions{
+		Workspace:    workspaceReq.Workspace,
+		WorkspaceDir: workspaceDir,
+		Cr:           workspaceReq.ContainerRegistry,
+		LogWriter:    logWriter,
+		Gpc:          workspaceReq.GitProviderConfig,
+		SshClient:    sshClient,
 	})
 }
