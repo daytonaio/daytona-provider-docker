@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +24,7 @@ import (
 	"github.com/daytonaio/daytona/pkg/ssh"
 	"github.com/daytonaio/daytona/pkg/workspace"
 	"github.com/daytonaio/daytona/pkg/workspace/project"
+	docker_sdk "github.com/docker/docker/client"
 )
 
 type DockerProvider struct {
@@ -279,6 +281,44 @@ func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClien
 	return docker.NewDockerClient(docker.DockerClientConfig{
 		ApiClient: client,
 	}), nil
+}
+
+func (p DockerProvider) CheckRequirements() (*[]provider.RequirementStatus, error) {
+	var results []provider.RequirementStatus
+	ctx := context.Background()
+
+	cli, err := docker_sdk.NewClientWithOpts(docker_sdk.FromEnv, docker_sdk.WithAPIVersionNegotiation())
+	if err != nil {
+		results = append(results, provider.RequirementStatus{
+			Name:   "Docker installed",
+			Met:    false,
+			Reason: "Docker is not installed",
+		})
+		return &results, nil
+	} else {
+		results = append(results, provider.RequirementStatus{
+			Name:   "Docker installed",
+			Met:    true,
+			Reason: "Docker is installed",
+		})
+	}
+
+	// Check if Docker is running by fetching Docker info
+	_, err = cli.Info(ctx)
+	if err != nil {
+		results = append(results, provider.RequirementStatus{
+			Name:   "Docker running",
+			Met:    false,
+			Reason: "Docker is not running. Error: " + err.Error(),
+		})
+	} else {
+		results = append(results, provider.RequirementStatus{
+			Name:   "Docker running",
+			Met:    true,
+			Reason: "Docker is running",
+		})
+	}
+	return &results, nil
 }
 
 // If the project is running locally, we override the env vars to use the host.docker.internal address
