@@ -56,12 +56,12 @@ func GetTargetManifest() *provider.TargetConfigManifest {
 	}
 }
 
-func ParseTargetConfigOptions(optionsJson string) (*TargetConfigOptions, error) {
+func ParseTargetConfigOptions(optionsJson string) (opts *TargetConfigOptions, isLocal bool, err error) {
 	var targetOptions TargetConfigOptions
-	err := json.Unmarshal([]byte(optionsJson), &targetOptions)
+	err = json.Unmarshal([]byte(optionsJson), &targetOptions)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return &targetOptions, nil
+	return &targetOptions, targetOptions.RemoteHostname == nil, nil
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/daytonaio/daytona/pkg/gitprovider"
 	"github.com/daytonaio/daytona/pkg/provider"
 	"github.com/daytonaio/daytona/pkg/target"
-	"github.com/daytonaio/daytona/pkg/target/workspace"
+	"github.com/daytonaio/daytona/pkg/workspace"
 
 	docker_provider "github.com/daytonaio/daytona-provider-docker/pkg/provider"
 	provider_types "github.com/daytonaio/daytona-provider-docker/pkg/types"
@@ -40,9 +40,6 @@ var target1 = &target.Target{
 	Id:           "123",
 	Name:         "test",
 	TargetConfig: "local",
-	Workspaces: []*workspace.Workspace{
-		workspace1,
-	},
 }
 
 func GetContainerName(workspace *workspace.Workspace) string {
