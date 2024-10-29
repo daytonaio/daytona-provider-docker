@@ -5,6 +5,7 @@ import (
 	"io"
 
 	log_writers "github.com/daytonaio/daytona-provider-docker/internal/log"
+	"github.com/daytonaio/daytona-provider-docker/pkg/types"
 
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logs"
@@ -32,7 +33,7 @@ func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provid
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(targetReq.Target.TargetConfig, targetReq.TargetConfigOptions)
+	sshClient, err := p.getSshClient(targetReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -51,7 +52,7 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
 		defer workspaceLogWriter.Close()
 	}
@@ -66,9 +67,14 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		return new(provider_util.Empty), err
 	}
 
+	_, isLocal, err := types.ParseTargetConfigOptions(workspaceReq.TargetConfigOptions)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
 	var sshClient *ssh.Client
-	if workspaceReq.Workspace.TargetConfig != "local" {
-		sshClient, err = p.getSshClient(workspaceReq.Workspace.TargetConfig, workspaceReq.TargetConfigOptions)
+	if !isLocal {
+		sshClient, err = p.getSshClient(workspaceReq.TargetConfigOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}

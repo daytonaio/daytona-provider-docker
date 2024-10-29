@@ -23,7 +23,7 @@ import (
 	provider_util "github.com/daytonaio/daytona/pkg/provider/util"
 	"github.com/daytonaio/daytona/pkg/ssh"
 	"github.com/daytonaio/daytona/pkg/target"
-	"github.com/daytonaio/daytona/pkg/target/workspace"
+	"github.com/daytonaio/daytona/pkg/workspace"
 )
 
 type DockerProvider struct {
@@ -120,7 +120,7 @@ func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provi
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(targetReq.Target.TargetConfig, targetReq.TargetConfigOptions)
+	sshClient, err := p.getSshClient(targetReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -159,7 +159,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
 		defer workspaceLogWriter.Close()
 	}
@@ -167,7 +167,12 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	downloadUrl := *p.DaytonaDownloadUrl
 	var sshClient *ssh.Client
 
-	if workspaceReq.Workspace.TargetConfig == "local" {
+	_, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.TargetConfigOptions)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	if isLocal {
 		builderType, err := detect.DetectWorkspaceBuilderType(workspaceReq.Workspace.BuildConfig, workspaceDir, nil)
 		if err != nil {
 			return new(provider_util.Empty), err
@@ -184,7 +189,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 			downloadUrl = parsed.String()
 		}
 	} else {
-		sshClient, err = p.getSshClient(workspaceReq.Workspace.TargetConfig, workspaceReq.TargetConfigOptions)
+		sshClient, err = p.getSshClient(workspaceReq.TargetConfigOptions)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
@@ -224,7 +229,7 @@ func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
 		defer workspaceLogWriter.Close()
 	}
@@ -243,7 +248,7 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(workspaceReq.Workspace.TargetConfig, workspaceReq.TargetConfigOptions)
+	sshClient, err := p.getSshClient(workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -269,7 +274,7 @@ func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClient, error) {
-	targetOptions, err := provider_types.ParseTargetConfigOptions(targetOptionsJson)
+	targetOptions, _, err := provider_types.ParseTargetConfigOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
 	}
@@ -323,41 +328,41 @@ func (p DockerProvider) CheckRequirements() (*[]provider.RequirementStatus, erro
 }
 
 func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest) (string, error) {
-	if workspaceReq.Workspace.TargetConfig == "local" {
-		return filepath.Join(*p.BasePath, workspaceReq.Workspace.TargetId, fmt.Sprintf("%s-%s", workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name)), nil
-	}
-
-	targetOptions, err := provider_types.ParseTargetConfigOptions(workspaceReq.TargetConfigOptions)
+	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.TargetConfigOptions)
 	if err != nil {
 		return "", err
+	}
+
+	if isLocal {
+		return filepath.Join(*p.BasePath, workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name), nil
 	}
 
 	// Using path instead of filepath because we always want to use / as the separator
-	return path.Join(*targetOptions.TargetDataDir, workspaceReq.Workspace.TargetId, fmt.Sprintf("%s-%s", workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name)), nil
+	return path.Join(*targetOptions.TargetDataDir, workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name), nil
 }
 
 func (p *DockerProvider) getTargetDir(targetReq *provider.TargetRequest) (string, error) {
-	if targetReq.Target.TargetConfig == "local" {
-		return filepath.Join(*p.BasePath, targetReq.Target.Id), nil
-	}
-
-	targetOptions, err := provider_types.ParseTargetConfigOptions(targetReq.TargetConfigOptions)
+	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(targetReq.TargetConfigOptions)
 	if err != nil {
 		return "", err
+	}
+
+	if isLocal {
+		return filepath.Join(*p.BasePath, targetReq.Target.Id), nil
 	}
 
 	// Using path instead of filepath because we always want to use / as the separator
 	return path.Join(*targetOptions.TargetDataDir, targetReq.Target.Id), nil
 }
 
-func (p *DockerProvider) getSshClient(targetName string, targetOptionsJson string) (*ssh.Client, error) {
-	if targetName == "local" {
-		return nil, nil
-	}
-
-	targetOptions, err := provider_types.ParseTargetConfigOptions(targetOptionsJson)
+func (p *DockerProvider) getSshClient(targetOptionsJson string) (*ssh.Client, error) {
+	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
+	}
+
+	if isLocal {
+		return nil, nil
 	}
 
 	return ssh.NewClient(&ssh.SessionConfig{
