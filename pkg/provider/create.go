@@ -18,7 +18,7 @@ func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provid
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		targetLogWriter := loggerFactory.CreateTargetLogger(targetReq.Target.Id, logs.LogSourceProvider)
+		targetLogWriter := loggerFactory.CreateTargetLogger(targetReq.Target.Id, targetReq.Target.Name, logs.LogSourceProvider)
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, targetLogWriter)
 		defer targetLogWriter.Close()
 	}
