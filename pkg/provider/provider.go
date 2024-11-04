@@ -309,7 +309,7 @@ func (p DockerProvider) CheckRequirements() (*[]provider.RequirementStatus, erro
 		results = append(results, provider.RequirementStatus{
 			Name:   "Docker running",
 			Met:    false,
-			Reason: "Docker is not running.",
+			Reason: "Docker is not running. Error: " + err.Error(),
 		})
 	} else {
 		results = append(results, provider.RequirementStatus{
