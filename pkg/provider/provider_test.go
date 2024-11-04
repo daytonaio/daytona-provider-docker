@@ -37,9 +37,12 @@ var workspace1 = &workspace.Workspace{
 }
 
 var target1 = &target.Target{
-	Id:           "123",
-	Name:         "test",
-	TargetConfig: "local",
+	Id:   "123",
+	Name: "test",
+	ProviderInfo: target.ProviderInfo{
+		Name:    "docker-provider",
+		Version: "v0.1.0",
+	},
 }
 
 func GetContainerName(workspace *workspace.Workspace) string {
@@ -50,8 +53,7 @@ func GetContainerName(workspace *workspace.Workspace) string {
 
 func TestCreateTarget(t *testing.T) {
 	targetReq := &provider.TargetRequest{
-		TargetConfigOptions: optionsString,
-		Target:              target1,
+		Target: target1,
 	}
 
 	_, err := dockerProvider.CreateTarget(targetReq)
@@ -67,8 +69,7 @@ func TestCreateTarget(t *testing.T) {
 
 func TestGetTargetInfo(t *testing.T) {
 	targetReq := &provider.TargetRequest{
-		TargetConfigOptions: optionsString,
-		Target:              target1,
+		Target: target1,
 	}
 
 	targetInfo, err := dockerProvider.GetTargetInfo(targetReq)
@@ -89,8 +90,7 @@ func TestGetTargetInfo(t *testing.T) {
 
 func TestDestroyTarget(t *testing.T) {
 	targetReq := &provider.TargetRequest{
-		TargetConfigOptions: optionsString,
-		Target:              target1,
+		Target: target1,
 	}
 
 	_, err := dockerProvider.DestroyTarget(targetReq)
@@ -113,8 +113,7 @@ func TestCreateWorkspace(t *testing.T) {
 	TestCreateTarget(t)
 
 	workspaceReq := &provider.WorkspaceRequest{
-		TargetConfigOptions: optionsString,
-		Workspace:           workspace1,
+		Workspace: workspace1,
 	}
 
 	_, err := dockerProvider.CreateWorkspace(workspaceReq)
@@ -130,8 +129,7 @@ func TestCreateWorkspace(t *testing.T) {
 
 func TestDestroyWorkspace(t *testing.T) {
 	workspaceReq := &provider.WorkspaceRequest{
-		TargetConfigOptions: optionsString,
-		Workspace:           workspace1,
+		Workspace: workspace1,
 	}
 
 	_, err := dockerProvider.DestroyWorkspace(workspaceReq)
@@ -176,4 +174,5 @@ func init() {
 	}
 
 	optionsString = string(opts)
+	target1.Options = optionsString
 }
