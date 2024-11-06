@@ -23,7 +23,7 @@ func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provid
 		defer targetLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(targetReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(targetReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -33,7 +33,7 @@ func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provid
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(targetReq.TargetConfigOptions)
+	sshClient, err := p.getSshClient(targetReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -57,7 +57,7 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		defer workspaceLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(workspaceReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -67,14 +67,14 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		return new(provider_util.Empty), err
 	}
 
-	_, isLocal, err := types.ParseTargetConfigOptions(workspaceReq.TargetConfigOptions)
+	_, isLocal, err := types.ParseTargetConfigOptions(workspaceReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
 	var sshClient *ssh.Client
 	if !isLocal {
-		sshClient, err = p.getSshClient(workspaceReq.TargetConfigOptions)
+		sshClient, err = p.getSshClient(workspaceReq.Target.Options)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
