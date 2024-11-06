@@ -86,19 +86,12 @@ func (p DockerProvider) GetTargetConfigManifest() (*provider.TargetConfigManifes
 }
 
 func (p DockerProvider) GetPresetTargetConfigs() (*[]provider.TargetConfig, error) {
-	info, err := p.GetInfo()
-	if err != nil {
-		return nil, err
-	}
-
-	presetTargets := []provider.TargetConfig{
+	return &[]provider.TargetConfig{
 		{
-			Name:         "local",
-			ProviderInfo: info,
-			Options:      "{\n\t\"Sock Path\": \"/var/run/docker.sock\"\n}",
+			Name:    "local",
+			Options: "{\n\t\"Sock Path\": \"/var/run/docker.sock\"\n}",
 		},
-	}
-	return &presetTargets, nil
+	}, nil
 }
 
 func (p DockerProvider) StartTarget(targetReq *provider.TargetRequest) (*provider_util.Empty, error) {
@@ -110,7 +103,7 @@ func (p DockerProvider) StopTarget(targetReq *provider.TargetRequest) (*provider
 }
 
 func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(targetReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(targetReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -120,7 +113,7 @@ func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provi
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(targetReq.TargetConfigOptions)
+	sshClient, err := p.getSshClient(targetReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -137,7 +130,7 @@ func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provi
 }
 
 func (p DockerProvider) GetTargetInfo(targetReq *provider.TargetRequest) (*target.TargetInfo, error) {
-	dockerClient, err := p.getClient(targetReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(targetReq.Target.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +139,7 @@ func (p DockerProvider) GetTargetInfo(targetReq *provider.TargetRequest) (*targe
 }
 
 func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(workspaceReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -167,7 +160,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	downloadUrl := *p.DaytonaDownloadUrl
 	var sshClient *ssh.Client
 
-	_, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.TargetConfigOptions)
+	_, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -189,7 +182,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 			downloadUrl = parsed.String()
 		}
 	} else {
-		sshClient, err = p.getSshClient(workspaceReq.TargetConfigOptions)
+		sshClient, err = p.getSshClient(workspaceReq.Target.Options)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
@@ -221,7 +214,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 }
 
 func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(workspaceReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -238,7 +231,7 @@ func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (
 }
 
 func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(workspaceReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -248,7 +241,7 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(workspaceReq.TargetConfigOptions)
+	sshClient, err := p.getSshClient(workspaceReq.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -265,7 +258,7 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*workspace.WorkspaceInfo, error) {
-	dockerClient, err := p.getClient(workspaceReq.TargetConfigOptions)
+	dockerClient, err := p.getClient(workspaceReq.Target.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -328,21 +321,21 @@ func (p DockerProvider) CheckRequirements() (*[]provider.RequirementStatus, erro
 }
 
 func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest) (string, error) {
-	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.TargetConfigOptions)
+	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.Target.Options)
 	if err != nil {
 		return "", err
 	}
 
 	if isLocal {
-		return filepath.Join(*p.BasePath, workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name), nil
+		return filepath.Join(*p.BasePath, workspaceReq.Workspace.Id, workspaceReq.Workspace.WorkspaceFolderName()), nil
 	}
 
 	// Using path instead of filepath because we always want to use / as the separator
-	return path.Join(*targetOptions.TargetDataDir, workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name), nil
+	return path.Join(*targetOptions.TargetDataDir, workspaceReq.Workspace.Id, workspaceReq.Workspace.WorkspaceFolderName()), nil
 }
 
 func (p *DockerProvider) getTargetDir(targetReq *provider.TargetRequest) (string, error) {
-	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(targetReq.TargetConfigOptions)
+	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(targetReq.Target.Options)
 	if err != nil {
 		return "", err
 	}
