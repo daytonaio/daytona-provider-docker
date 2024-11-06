@@ -286,11 +286,11 @@ func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest
 	}
 
 	if isLocal {
-		return filepath.Join(*p.BasePath, workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name), nil
+		return filepath.Join(*p.BasePath, workspaceReq.Workspace.Id, workspaceReq.Workspace.WorkspaceFolderName()), nil
 	}
 
 	// Using path instead of filepath because we always want to use / as the separator
-	return path.Join(*targetOptions.TargetDataDir, workspaceReq.Workspace.TargetId, workspaceReq.Workspace.Name), nil
+	return path.Join(*targetOptions.TargetDataDir, workspaceReq.Workspace.Id, workspaceReq.Workspace.WorkspaceFolderName()), nil
 }
 
 func (p *DockerProvider) getTargetDir(targetReq *provider.TargetRequest) (string, error) {
