@@ -9,9 +9,8 @@ import (
 
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/gitprovider"
+	"github.com/daytonaio/daytona/pkg/models"
 	"github.com/daytonaio/daytona/pkg/provider"
-	"github.com/daytonaio/daytona/pkg/target"
-	"github.com/daytonaio/daytona/pkg/workspace"
 
 	docker_provider "github.com/daytonaio/daytona-provider-docker/pkg/provider"
 	provider_types "github.com/daytonaio/daytona-provider-docker/pkg/types"
@@ -25,7 +24,7 @@ var targetOptions = &provider_types.TargetConfigOptions{}
 var sockDir = "/tmp/target-socks"
 var optionsString string
 
-var workspace1 = &workspace.Workspace{
+var workspace1 = &models.Workspace{
 	Name: "test",
 	Repository: &gitprovider.GitRepository{
 		Id:   "123",
@@ -36,16 +35,16 @@ var workspace1 = &workspace.Workspace{
 	TargetId: "123",
 }
 
-var target1 = &target.Target{
+var target1 = &models.Target{
 	Id:   "123",
 	Name: "test",
-	ProviderInfo: target.ProviderInfo{
+	ProviderInfo: models.ProviderInfo{
 		Name:    "docker-provider",
 		Version: "v0.1.0",
 	},
 }
 
-func GetContainerName(workspace *workspace.Workspace) string {
+func GetContainerName(workspace *models.Workspace) string {
 	dockerClient := docker.NewDockerClient(docker.DockerClientConfig{})
 
 	return dockerClient.GetWorkspaceContainerName(workspace)

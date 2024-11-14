@@ -57,7 +57,7 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		defer workspaceLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(workspaceReq.Target.Options)
+	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -67,14 +67,14 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		return new(provider_util.Empty), err
 	}
 
-	_, isLocal, err := types.ParseTargetConfigOptions(workspaceReq.Target.Options)
+	_, isLocal, err := types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
 	var sshClient *ssh.Client
 	if !isLocal {
-		sshClient, err = p.getSshClient(workspaceReq.Target.Options)
+		sshClient, err = p.getSshClient(workspaceReq.Workspace.Target.Options)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
