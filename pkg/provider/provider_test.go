@@ -35,13 +35,21 @@ var workspace1 = &models.Workspace{
 	TargetId: "123",
 }
 
-var target1 = &models.Target{
-	Id:   "123",
+var targetConfig1 = &models.TargetConfig{
 	Name: "test",
 	ProviderInfo: models.ProviderInfo{
 		Name:    "docker-provider",
-		Version: "v0.1.0",
+		Version: "test",
 	},
+	Options: "test-options",
+	Deleted: false,
+}
+
+var target1 = &models.Target{
+	Id:               "123",
+	Name:             "test",
+	TargetConfigName: targetConfig1.Name,
+	TargetConfig:     *targetConfig1,
 }
 
 func GetContainerName(workspace *models.Workspace) string {
@@ -173,5 +181,5 @@ func init() {
 	}
 
 	optionsString = string(opts)
-	target1.Options = optionsString
+	target1.TargetConfig.Options = optionsString
 }
