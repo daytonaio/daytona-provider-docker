@@ -36,6 +36,7 @@ var workspace1 = &models.Workspace{
 }
 
 var targetConfig1 = &models.TargetConfig{
+	Id:   "test",
 	Name: "test",
 	ProviderInfo: models.ProviderInfo{
 		Name:    "docker-provider",
@@ -46,10 +47,10 @@ var targetConfig1 = &models.TargetConfig{
 }
 
 var target1 = &models.Target{
-	Id:               "123",
-	Name:             "test",
-	TargetConfigName: targetConfig1.Name,
-	TargetConfig:     *targetConfig1,
+	Id:             "123",
+	Name:           "test",
+	TargetConfigId: targetConfig1.Id,
+	TargetConfig:   *targetConfig1,
 }
 
 func GetContainerName(workspace *models.Workspace) string {
