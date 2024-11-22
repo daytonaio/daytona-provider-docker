@@ -15,8 +15,6 @@ require (
 	golang.org/x/term v0.23.0
 )
 
-replace github.com/daytonaio/daytona => /workspaces/daytona
-
 require (
 	code.gitea.io/sdk/gitea v0.17.1 // indirect
 	dario.cat/mergo v1.0.1 // indirect

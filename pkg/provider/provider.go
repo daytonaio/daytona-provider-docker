@@ -191,14 +191,12 @@ func (p DockerProvider) StartProject(projectReq *provider.ProjectRequest) (*prov
 	}
 
 	err = dockerClient.StartProject(&docker.CreateProjectOptions{
-		Project:                  projectReq.Project,
-		ProjectDir:               projectDir,
-		ContainerRegistry:        projectReq.ContainerRegistry,
-		BuilderImage:             projectReq.BuilderImage,
-		BuilderContainerRegistry: projectReq.BuilderContainerRegistry,
-		LogWriter:                logWriter,
-		Gpc:                      projectReq.GitProviderConfig,
-		SshClient:                sshClient,
+		Project:    projectReq.Project,
+		ProjectDir: projectDir,
+		Cr:         projectReq.ContainerRegistry,
+		LogWriter:  logWriter,
+		Gpc:        projectReq.GitProviderConfig,
+		SshClient:  sshClient,
 	}, downloadUrl)
 	if err != nil {
 		return new(provider_util.Empty), err
