@@ -23,6 +23,7 @@ import (
 	"github.com/daytonaio/daytona/pkg/provider"
 	provider_util "github.com/daytonaio/daytona/pkg/provider/util"
 	"github.com/daytonaio/daytona/pkg/ssh"
+	docker_sdk "github.com/docker/docker/client"
 )
 
 type DockerProvider struct {
