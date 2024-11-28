@@ -102,7 +102,7 @@ func (p DockerProvider) StopTarget(targetReq *provider.TargetRequest) (*provider
 }
 
 func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(targetReq.Target.Options)
+	dockerClient, err := p.getClient(targetReq.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -112,7 +112,7 @@ func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provi
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(targetReq.Target.Options)
+	sshClient, err := p.getSshClient(targetReq.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -129,7 +129,7 @@ func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provi
 }
 
 func (p DockerProvider) GetTargetInfo(targetReq *provider.TargetRequest) (*models.TargetInfo, error) {
-	dockerClient, err := p.getClient(targetReq.Target.Options)
+	dockerClient, err := p.getClient(targetReq.Target.TargetConfig.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (p DockerProvider) GetTargetInfo(targetReq *provider.TargetRequest) (*model
 }
 
 func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.Options)
+	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -159,7 +159,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	downloadUrl := *p.DaytonaDownloadUrl
 	var sshClient *ssh.Client
 
-	_, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.Options)
+	_, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -181,7 +181,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 			downloadUrl = parsed.String()
 		}
 	} else {
-		sshClient, err = p.getSshClient(workspaceReq.Workspace.Target.Options)
+		sshClient, err = p.getSshClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
@@ -213,7 +213,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 }
 
 func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.Options)
+	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -230,7 +230,7 @@ func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (
 }
 
 func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
-	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.Options)
+	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -240,7 +240,7 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(workspaceReq.Workspace.Target.Options)
+	sshClient, err := p.getSshClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -257,7 +257,7 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*models.WorkspaceInfo, error) {
-	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.Options)
+	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (p DockerProvider) CheckRequirements() (*[]provider.RequirementStatus, erro
 }
 
 func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest) (string, error) {
-	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.Options)
+	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return "", err
 	}
@@ -334,7 +334,7 @@ func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p *DockerProvider) getTargetDir(targetReq *provider.TargetRequest) (string, error) {
-	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(targetReq.Target.Options)
+	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(targetReq.Target.TargetConfig.Options)
 	if err != nil {
 		return "", err
 	}
