@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.1
 
 require (
-	github.com/daytonaio/daytona v0.46.1
+	github.com/daytonaio/daytona v0.47.0
 	github.com/docker/docker v27.2.0+incompatible
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.6.0
