@@ -75,9 +75,10 @@ func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
 	label := "Docker"
 
 	return provider.ProviderInfo{
-		Name:    "docker-provider",
-		Label:   &label,
-		Version: internal.Version,
+		Name:            "docker-provider",
+		Label:           &label,
+		AgentlessTarget: true,
+		Version:         internal.Version,
 	}, nil
 }
 
