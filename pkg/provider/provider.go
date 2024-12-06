@@ -190,14 +190,13 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	}
 
 	err = dockerClient.StartWorkspace(&docker.CreateWorkspaceOptions{
-		Workspace:                workspaceReq.Workspace,
-		WorkspaceDir:             workspaceDir,
-		ContainerRegistry:        workspaceReq.ContainerRegistry,
-		BuilderImage:             workspaceReq.BuilderImage,
-		BuilderContainerRegistry: workspaceReq.BuilderContainerRegistry,
-		LogWriter:                logWriter,
-		Gpc:                      workspaceReq.GitProviderConfig,
-		SshClient:                sshClient,
+		Workspace:           workspaceReq.Workspace,
+		WorkspaceDir:        workspaceDir,
+		ContainerRegistries: workspaceReq.ContainerRegistries,
+		BuilderImage:        workspaceReq.BuilderImage,
+		LogWriter:           logWriter,
+		Gpc:                 workspaceReq.GitProviderConfig,
+		SshClient:           sshClient,
 	}, downloadUrl)
 	if err != nil {
 		return new(provider_util.Empty), err

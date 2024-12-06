@@ -82,13 +82,12 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 	}
 
 	return new(provider_util.Empty), dockerClient.CreateWorkspace(&docker.CreateWorkspaceOptions{
-		Workspace:                workspaceReq.Workspace,
-		WorkspaceDir:             workspaceDir,
-		ContainerRegistry:        workspaceReq.ContainerRegistry,
-		BuilderImage:             workspaceReq.BuilderImage,
-		BuilderContainerRegistry: workspaceReq.BuilderContainerRegistry,
-		LogWriter:                logWriter,
-		Gpc:                      workspaceReq.GitProviderConfig,
-		SshClient:                sshClient,
+		Workspace:           workspaceReq.Workspace,
+		WorkspaceDir:        workspaceDir,
+		ContainerRegistries: workspaceReq.ContainerRegistries,
+		BuilderImage:        workspaceReq.BuilderImage,
+		LogWriter:           logWriter,
+		Gpc:                 workspaceReq.GitProviderConfig,
+		SshClient:           sshClient,
 	})
 }
