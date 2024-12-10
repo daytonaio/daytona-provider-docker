@@ -14,6 +14,7 @@ import (
 	internal "github.com/daytonaio/daytona-provider-docker/internal"
 	log_writers "github.com/daytonaio/daytona-provider-docker/internal/log"
 	"github.com/daytonaio/daytona-provider-docker/pkg/client"
+	"github.com/daytonaio/daytona-provider-docker/pkg/types"
 	provider_types "github.com/daytonaio/daytona-provider-docker/pkg/types"
 
 	"github.com/daytonaio/daytona/pkg/build/detect"
@@ -32,6 +33,7 @@ type DockerProvider struct {
 	DaytonaVersion     *string
 	ServerUrl          *string
 	ApiUrl             *string
+	ApiKey             *string
 	LogsDir            *string
 	ApiPort            *uint32
 	ServerPort         *uint32
@@ -64,6 +66,7 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*pr
 	p.DaytonaVersion = &req.DaytonaVersion
 	p.ServerUrl = &req.ServerUrl
 	p.ApiUrl = &req.ApiUrl
+	p.ApiKey = &req.ApiKey
 	p.LogsDir = &req.LogsDir
 	p.ApiPort = &req.ApiPort
 	p.ServerPort = &req.ServerPort
@@ -71,19 +74,16 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*pr
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
+func (p DockerProvider) GetInfo() (models.ProviderInfo, error) {
 	label := "Docker"
 
-	return provider.ProviderInfo{
-		Name:            "docker-provider",
-		Label:           &label,
-		AgentlessTarget: true,
-		Version:         internal.Version,
+	return models.ProviderInfo{
+		Name:                 "docker-provider",
+		Label:                &label,
+		AgentlessTarget:      true,
+		Version:              internal.Version,
+		TargetConfigManifest: *types.GetTargetConfigManifest(),
 	}, nil
-}
-
-func (p DockerProvider) GetTargetConfigManifest() (*provider.TargetConfigManifest, error) {
-	return provider_types.GetTargetManifest(), nil
 }
 
 func (p DockerProvider) GetPresetTargetConfigs() (*[]provider.TargetConfig, error) {
@@ -130,13 +130,13 @@ func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provi
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetTargetInfo(targetReq *provider.TargetRequest) (*models.TargetInfo, error) {
+func (p DockerProvider) GetTargetProviderMetadata(targetReq *provider.TargetRequest) (string, error) {
 	dockerClient, err := p.getClient(targetReq.Target.TargetConfig.Options)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return dockerClient.GetTargetInfo(targetReq.Target)
+	return dockerClient.GetTargetProviderMetadata(targetReq.Target)
 }
 
 func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
@@ -151,9 +151,12 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	}
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+	if p.LogsDir != nil && p.ApiUrl != nil && p.ApiKey != nil {
+		loggerFactory := logs.NewRemoteLoggerFactory(p.LogsDir, nil, *p.ApiUrl, *p.ApiKey)
+		workspaceLogWriter, err := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
 		defer workspaceLogWriter.Close()
 	}
@@ -166,7 +169,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 		return new(provider_util.Empty), err
 	}
 
-	if isLocal {
+	if isLocal && workspaceReq.Workspace.Target.TargetConfig.ProviderInfo.RunnerId == "local" {
 		builderType, err := detect.DetectWorkspaceBuilderType(workspaceReq.Workspace.BuildConfig, workspaceDir, nil)
 		if err != nil {
 			return new(provider_util.Empty), err
@@ -187,17 +190,19 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
-		defer sshClient.Close()
+		if sshClient != nil {
+			defer sshClient.Close()
+		}
 	}
 
 	err = dockerClient.StartWorkspace(&docker.CreateWorkspaceOptions{
 		Workspace:           workspaceReq.Workspace,
 		WorkspaceDir:        workspaceDir,
 		ContainerRegistries: workspaceReq.ContainerRegistries,
-		BuilderImage:        workspaceReq.BuilderImage,
 		LogWriter:           logWriter,
 		Gpc:                 workspaceReq.GitProviderConfig,
 		SshClient:           sshClient,
+		BuilderImage:        workspaceReq.BuilderImage,
 	}, downloadUrl)
 	if err != nil {
 		return new(provider_util.Empty), err
@@ -222,7 +227,10 @@ func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
 	if p.LogsDir != nil {
 		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		workspaceLogWriter, err := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
 		defer workspaceLogWriter.Close()
 	}
@@ -257,13 +265,13 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*models.WorkspaceInfo, error) {
+func (p DockerProvider) GetWorkspaceProviderMetadata(workspaceReq *provider.WorkspaceRequest) (string, error) {
 	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return dockerClient.GetWorkspaceInfo(workspaceReq.Workspace)
+	return dockerClient.GetWorkspaceProviderMetadata(workspaceReq.Workspace)
 }
 
 func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClient, error) {
