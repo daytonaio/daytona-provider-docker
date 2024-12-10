@@ -71,19 +71,15 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*pr
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
+func (p DockerProvider) GetInfo() (models.ProviderInfo, error) {
 	label := "Docker"
 
-	return provider.ProviderInfo{
+	return models.ProviderInfo{
 		Name:            "docker-provider",
 		Label:           &label,
 		AgentlessTarget: true,
 		Version:         internal.Version,
 	}, nil
-}
-
-func (p DockerProvider) GetTargetConfigManifest() (*provider.TargetConfigManifest, error) {
-	return provider_types.GetTargetManifest(), nil
 }
 
 func (p DockerProvider) GetPresetTargetConfigs() (*[]provider.TargetConfig, error) {
@@ -130,13 +126,13 @@ func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provi
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetTargetInfo(targetReq *provider.TargetRequest) (*models.TargetInfo, error) {
+func (p DockerProvider) GetTargetProviderMetadata(targetReq *provider.TargetRequest) (string, error) {
 	dockerClient, err := p.getClient(targetReq.Target.TargetConfig.Options)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return dockerClient.GetTargetInfo(targetReq.Target)
+	return dockerClient.GetTargetProviderMetadata(targetReq.Target)
 }
 
 func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
@@ -258,13 +254,13 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*models.WorkspaceInfo, error) {
+func (p DockerProvider) GetWorkspaceProviderMetadata(workspaceReq *provider.WorkspaceRequest) (string, error) {
 	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return dockerClient.GetWorkspaceInfo(workspaceReq.Workspace)
+	return dockerClient.GetWorkspaceProviderMetadata(workspaceReq.Workspace)
 }
 
 func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClient, error) {

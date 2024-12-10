@@ -80,13 +80,13 @@ func TestGetTargetInfo(t *testing.T) {
 		Target: target1,
 	}
 
-	targetInfo, err := dockerProvider.GetTargetInfo(targetReq)
-	if err != nil || targetInfo == nil {
+	targetInfo, err := dockerProvider.GetTargetProviderMetadata(targetReq)
+	if err != nil {
 		t.Errorf("Error getting target info: %s", err)
 	}
 
 	var targetMetadata provider_types.TargetMetadata
-	err = json.Unmarshal([]byte(targetInfo.ProviderMetadata), &targetMetadata)
+	err = json.Unmarshal([]byte(targetInfo), &targetMetadata)
 	if err != nil {
 		t.Errorf("Error unmarshalling target metadata: %s", err)
 	}
