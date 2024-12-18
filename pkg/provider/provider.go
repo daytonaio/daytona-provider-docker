@@ -20,6 +20,7 @@ import (
 	"github.com/daytonaio/daytona/pkg/build/detect"
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logs"
+	"github.com/daytonaio/daytona/pkg/logs/remotelogs"
 	"github.com/daytonaio/daytona/pkg/models"
 	"github.com/daytonaio/daytona/pkg/provider"
 	provider_util "github.com/daytonaio/daytona/pkg/provider/util"
@@ -34,7 +35,8 @@ type DockerProvider struct {
 	ServerUrl          *string
 	ApiUrl             *string
 	ApiKey             *string
-	LogsDir            *string
+	TargetLogsDir      *string
+	WorkspaceLogsDir   *string
 	ApiPort            *uint32
 	ServerPort         *uint32
 	RemoteSockDir      string
@@ -67,7 +69,8 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*pr
 	p.ServerUrl = &req.ServerUrl
 	p.ApiUrl = &req.ApiUrl
 	p.ApiKey = &req.ApiKey
-	p.LogsDir = &req.LogsDir
+	p.TargetLogsDir = &req.TargetLogsDir
+	p.WorkspaceLogsDir = &req.WorkspaceLogsDir
 	p.ApiPort = &req.ApiPort
 	p.ServerPort = &req.ServerPort
 
@@ -151,9 +154,14 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	}
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil && p.ApiUrl != nil && p.ApiKey != nil {
-		loggerFactory := logs.NewRemoteLoggerFactory(p.LogsDir, nil, *p.ApiUrl, *p.ApiKey)
-		workspaceLogWriter, err := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+	if p.WorkspaceLogsDir != nil && p.ApiUrl != nil && p.ApiKey != nil {
+		loggerFactory := remotelogs.NewRemoteLoggerFactory(remotelogs.RemoteLoggerFactoryConfig{
+			LogsDir:      *p.WorkspaceLogsDir,
+			ServerUrl:    *p.ApiUrl,
+			ServerApiKey: *p.ApiKey,
+			BasePath:     "/log/workspace",
+		})
+		workspaceLogWriter, err := loggerFactory.CreateLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
@@ -225,9 +233,9 @@ func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (
 	}
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		workspaceLogWriter, err := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+	if p.WorkspaceLogsDir != nil {
+		loggerFactory := logs.NewLoggerFactory(*p.WorkspaceLogsDir)
+		workspaceLogWriter, err := loggerFactory.CreateLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}

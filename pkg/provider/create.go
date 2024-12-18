@@ -9,6 +9,7 @@ import (
 
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logs"
+	"github.com/daytonaio/daytona/pkg/logs/remotelogs"
 	"github.com/daytonaio/daytona/pkg/provider"
 	provider_util "github.com/daytonaio/daytona/pkg/provider/util"
 	"github.com/daytonaio/daytona/pkg/ssh"
@@ -16,9 +17,15 @@ import (
 
 func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provider_util.Empty, error) {
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		targetLogWriter, err := loggerFactory.CreateTargetLogger(targetReq.Target.Id, targetReq.Target.Name, logs.LogSourceProvider)
+	if p.TargetLogsDir != nil {
+		// loggerFactory := logs.NewLoggerFactory(*p.TargetLogsDir)
+		loggerFactory := remotelogs.NewRemoteLoggerFactory(remotelogs.RemoteLoggerFactoryConfig{
+			LogsDir:      *p.TargetLogsDir,
+			ServerUrl:    *p.ApiUrl,
+			ServerApiKey: *p.ApiKey,
+			BasePath:     "/log/target",
+		})
+		targetLogWriter, err := loggerFactory.CreateLogger(targetReq.Target.Id, targetReq.Target.Name, logs.LogSourceProvider)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
@@ -53,9 +60,14 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 	}
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil && p.ApiUrl != nil && p.ApiKey != nil {
-		loggerFactory := logs.NewRemoteLoggerFactory(p.LogsDir, nil, *p.ApiUrl, *p.ApiKey)
-		workspaceLogWriter, err := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+	if p.WorkspaceLogsDir != nil && p.ApiUrl != nil && p.ApiKey != nil {
+		loggerFactory := remotelogs.NewRemoteLoggerFactory(remotelogs.RemoteLoggerFactoryConfig{
+			LogsDir:      *p.WorkspaceLogsDir,
+			ServerUrl:    *p.ApiUrl,
+			ServerApiKey: *p.ApiKey,
+			BasePath:     "/log/workspace",
+		})
+		workspaceLogWriter, err := loggerFactory.CreateLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
