@@ -4,6 +4,9 @@ go 1.23.0
 
 toolchain go1.23.1
 
+// samber/lo v1.47.0 - required by headscale breaks frp
+replace github.com/samber/lo => github.com/samber/lo v1.39.0
+
 require (
 	github.com/daytonaio/daytona v0.46.1
 	github.com/docker/docker v27.2.0+incompatible
