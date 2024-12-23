@@ -3,7 +3,7 @@ package types
 import (
 	"encoding/json"
 
-	"github.com/daytonaio/daytona/pkg/provider"
+	"github.com/daytonaio/daytona/pkg/models"
 )
 
 type TargetConfigOptions struct {
@@ -16,39 +16,39 @@ type TargetConfigOptions struct {
 	TargetDataDir    *string `json:"Target Data Dir,omitempty"`
 }
 
-func GetTargetManifest() *provider.TargetConfigManifest {
-	return &provider.TargetConfigManifest{
-		"Remote Hostname": provider.TargetConfigProperty{
-			Type:              provider.TargetConfigPropertyTypeString,
+func GetTargetConfigManifest() *models.TargetConfigManifest {
+	return &models.TargetConfigManifest{
+		"Remote Hostname": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeString,
 			DisabledPredicate: "^local$",
 		},
-		"Remote Port": provider.TargetConfigProperty{
-			Type:              provider.TargetConfigPropertyTypeInt,
+		"Remote Port": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeInt,
 			DefaultValue:      "22",
 			DisabledPredicate: "^local$",
 		},
-		"Remote User": provider.TargetConfigProperty{
-			Type: provider.TargetConfigPropertyTypeString,
+		"Remote User": models.TargetConfigProperty{
+			Type: models.TargetConfigPropertyTypeString,
 			// TODO: Add docs entry
 			Description:       "Note: non-root user required",
 			DisabledPredicate: "^local$",
 		},
-		"Remote Password": provider.TargetConfigProperty{
-			Type:              provider.TargetConfigPropertyTypeString,
+		"Remote Password": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeString,
 			DisabledPredicate: "^local$",
 			InputMasked:       true,
 		},
-		"Remote Private Key Path": provider.TargetConfigProperty{
-			Type:              provider.TargetConfigPropertyTypeFilePath,
+		"Remote Private Key Path": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeFilePath,
 			DefaultValue:      "~/.ssh",
 			DisabledPredicate: "^local$",
 		},
-		"Sock Path": provider.TargetConfigProperty{
-			Type:         provider.TargetConfigPropertyTypeString,
+		"Sock Path": models.TargetConfigProperty{
+			Type:         models.TargetConfigPropertyTypeString,
 			DefaultValue: "/var/run/docker.sock",
 		},
-		"Target Data Dir": provider.TargetConfigProperty{
-			Type:              provider.TargetConfigPropertyTypeString,
+		"Target Data Dir": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeString,
 			DefaultValue:      "/tmp/daytona-data",
 			Description:       "The directory on the remote host where the target data will be stored",
 			DisabledPredicate: "^local$",

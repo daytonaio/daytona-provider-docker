@@ -14,9 +14,10 @@ import (
 	internal "github.com/daytonaio/daytona-provider-docker/internal"
 	log_writers "github.com/daytonaio/daytona-provider-docker/internal/log"
 	"github.com/daytonaio/daytona-provider-docker/pkg/client"
-	provider_types "github.com/daytonaio/daytona-provider-docker/pkg/types"
+	"github.com/daytonaio/daytona-provider-docker/pkg/types"
 
 	"github.com/daytonaio/daytona/pkg/build/detect"
+	"github.com/daytonaio/daytona/pkg/cmd/bootstrap"
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logs"
 	"github.com/daytonaio/daytona/pkg/models"
@@ -32,7 +33,9 @@ type DockerProvider struct {
 	DaytonaVersion     *string
 	ServerUrl          *string
 	ApiUrl             *string
-	LogsDir            *string
+	ApiKey             *string
+	TargetLogsDir      *string
+	WorkspaceLogsDir   *string
 	ApiPort            *uint32
 	ServerPort         *uint32
 	RemoteSockDir      string
@@ -64,26 +67,25 @@ func (p *DockerProvider) Initialize(req provider.InitializeProviderRequest) (*pr
 	p.DaytonaVersion = &req.DaytonaVersion
 	p.ServerUrl = &req.ServerUrl
 	p.ApiUrl = &req.ApiUrl
-	p.LogsDir = &req.LogsDir
+	p.ApiKey = req.ApiKey
+	p.TargetLogsDir = &req.TargetLogsDir
+	p.WorkspaceLogsDir = &req.WorkspaceLogsDir
 	p.ApiPort = &req.ApiPort
 	p.ServerPort = &req.ServerPort
 
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetInfo() (provider.ProviderInfo, error) {
+func (p DockerProvider) GetInfo() (models.ProviderInfo, error) {
 	label := "Docker"
 
-	return provider.ProviderInfo{
-		Name:            "docker-provider",
-		Label:           &label,
-		AgentlessTarget: true,
-		Version:         internal.Version,
+	return models.ProviderInfo{
+		Name:                 "docker-provider",
+		Label:                &label,
+		AgentlessTarget:      true,
+		Version:              internal.Version,
+		TargetConfigManifest: *types.GetTargetConfigManifest(),
 	}, nil
-}
-
-func (p DockerProvider) GetTargetConfigManifest() (*provider.TargetConfigManifest, error) {
-	return provider_types.GetTargetManifest(), nil
 }
 
 func (p DockerProvider) GetPresetTargetConfigs() (*[]provider.TargetConfig, error) {
@@ -130,13 +132,13 @@ func (p DockerProvider) DestroyTarget(targetReq *provider.TargetRequest) (*provi
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetTargetInfo(targetReq *provider.TargetRequest) (*models.TargetInfo, error) {
+func (p DockerProvider) GetTargetProviderMetadata(targetReq *provider.TargetRequest) (string, error) {
 	dockerClient, err := p.getClient(targetReq.Target.TargetConfig.Options)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return dockerClient.GetTargetInfo(targetReq.Target)
+	return dockerClient.GetTargetProviderMetadata(targetReq.Target)
 }
 
 func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
@@ -151,9 +153,17 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	}
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+	if p.WorkspaceLogsDir != nil {
+		loggerFactory := logs.NewLoggerFactory(logs.LoggerFactoryConfig{
+			LogsDir:     *p.WorkspaceLogsDir,
+			ApiUrl:      p.ApiUrl,
+			ApiKey:      p.ApiKey,
+			ApiBasePath: &logs.ApiBasePathWorkspace,
+		})
+		workspaceLogWriter, err := loggerFactory.CreateLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
 		defer workspaceLogWriter.Close()
 	}
@@ -161,12 +171,12 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 	downloadUrl := *p.DaytonaDownloadUrl
 	var sshClient *ssh.Client
 
-	_, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.TargetConfig.Options)
+	_, isLocal, err := types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
-	if isLocal {
+	if isLocal && workspaceReq.Workspace.Target.TargetConfig.ProviderInfo.RunnerId == bootstrap.LOCAL_RUNNER_ID {
 		builderType, err := detect.DetectWorkspaceBuilderType(workspaceReq.Workspace.BuildConfig, workspaceDir, nil)
 		if err != nil {
 			return new(provider_util.Empty), err
@@ -187,17 +197,19 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
-		defer sshClient.Close()
+		if sshClient != nil {
+			defer sshClient.Close()
+		}
 	}
 
 	err = dockerClient.StartWorkspace(&docker.CreateWorkspaceOptions{
 		Workspace:           workspaceReq.Workspace,
 		WorkspaceDir:        workspaceDir,
 		ContainerRegistries: workspaceReq.ContainerRegistries,
-		BuilderImage:        workspaceReq.BuilderImage,
 		LogWriter:           logWriter,
 		Gpc:                 workspaceReq.GitProviderConfig,
 		SshClient:           sshClient,
+		BuilderImage:        workspaceReq.BuilderImage,
 	}, downloadUrl)
 	if err != nil {
 		return new(provider_util.Empty), err
@@ -220,9 +232,17 @@ func (p DockerProvider) StopWorkspace(workspaceReq *provider.WorkspaceRequest) (
 	}
 
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		workspaceLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+	if p.WorkspaceLogsDir != nil {
+		loggerFactory := logs.NewLoggerFactory(logs.LoggerFactoryConfig{
+			LogsDir:     *p.WorkspaceLogsDir,
+			ApiUrl:      p.ApiUrl,
+			ApiKey:      p.ApiKey,
+			ApiBasePath: &logs.ApiBasePathWorkspace,
+		})
+		workspaceLogWriter, err := loggerFactory.CreateLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
 		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
 		defer workspaceLogWriter.Close()
 	}
@@ -257,17 +277,17 @@ func (p DockerProvider) DestroyWorkspace(workspaceReq *provider.WorkspaceRequest
 	return new(provider_util.Empty), nil
 }
 
-func (p DockerProvider) GetWorkspaceInfo(workspaceReq *provider.WorkspaceRequest) (*models.WorkspaceInfo, error) {
+func (p DockerProvider) GetWorkspaceProviderMetadata(workspaceReq *provider.WorkspaceRequest) (string, error) {
 	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return dockerClient.GetWorkspaceInfo(workspaceReq.Workspace)
+	return dockerClient.GetWorkspaceProviderMetadata(workspaceReq.Workspace)
 }
 
 func (p DockerProvider) getClient(targetOptionsJson string) (docker.IDockerClient, error) {
-	targetOptions, _, err := provider_types.ParseTargetConfigOptions(targetOptionsJson)
+	targetOptions, _, err := types.ParseTargetConfigOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +341,7 @@ func (p DockerProvider) CheckRequirements() (*[]provider.RequirementStatus, erro
 }
 
 func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest) (string, error) {
-	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.TargetConfig.Options)
+	targetOptions, isLocal, err := types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return "", err
 	}
@@ -335,7 +355,7 @@ func (p *DockerProvider) getWorkspaceDir(workspaceReq *provider.WorkspaceRequest
 }
 
 func (p *DockerProvider) getTargetDir(targetReq *provider.TargetRequest) (string, error) {
-	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(targetReq.Target.TargetConfig.Options)
+	targetOptions, isLocal, err := types.ParseTargetConfigOptions(targetReq.Target.TargetConfig.Options)
 	if err != nil {
 		return "", err
 	}
@@ -349,7 +369,7 @@ func (p *DockerProvider) getTargetDir(targetReq *provider.TargetRequest) (string
 }
 
 func (p *DockerProvider) getSshClient(targetOptionsJson string) (*ssh.Client, error) {
-	targetOptions, isLocal, err := provider_types.ParseTargetConfigOptions(targetOptionsJson)
+	targetOptions, isLocal, err := types.ParseTargetConfigOptions(targetOptionsJson)
 	if err != nil {
 		return nil, err
 	}
