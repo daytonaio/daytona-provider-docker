@@ -17,7 +17,7 @@ import (
 	"github.com/daytonaio/daytona-provider-docker/pkg/types"
 
 	"github.com/daytonaio/daytona/pkg/build/detect"
-	"github.com/daytonaio/daytona/pkg/cmd/bootstrap"
+	"github.com/daytonaio/daytona/pkg/common"
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logs"
 	"github.com/daytonaio/daytona/pkg/models"
@@ -176,7 +176,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 		return new(provider_util.Empty), err
 	}
 
-	if isLocal && workspaceReq.Workspace.Target.TargetConfig.ProviderInfo.RunnerId == bootstrap.LOCAL_RUNNER_ID {
+	if isLocal && workspaceReq.Workspace.Target.TargetConfig.ProviderInfo.RunnerId == common.LOCAL_RUNNER_ID {
 		builderType, err := detect.DetectWorkspaceBuilderType(workspaceReq.Workspace.BuildConfig, workspaceDir, nil)
 		if err != nil {
 			return new(provider_util.Empty), err
