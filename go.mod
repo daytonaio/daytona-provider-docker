@@ -8,7 +8,7 @@ toolchain go1.23.1
 replace github.com/samber/lo => github.com/samber/lo v1.39.0
 
 require (
-	github.com/daytonaio/daytona v0.46.1
+	github.com/daytonaio/daytona v0.51.1-0.20250117144757-c213b32ca9c7
 	github.com/docker/docker v27.2.0+incompatible
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.6.0
@@ -17,8 +17,6 @@ require (
 	golang.org/x/sync v0.10.0
 	golang.org/x/term v0.27.0
 )
-
-replace github.com/daytonaio/daytona => /workspaces/daytona
 
 require (
 	code.gitea.io/sdk/gitea v0.17.1 // indirect
