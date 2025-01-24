@@ -5,6 +5,7 @@ import (
 	"io"
 
 	log_writers "github.com/daytonaio/daytona-provider-docker/internal/log"
+	"github.com/daytonaio/daytona-provider-docker/pkg/types"
 
 	"github.com/daytonaio/daytona/pkg/docker"
 	"github.com/daytonaio/daytona/pkg/logs"
@@ -13,16 +14,66 @@ import (
 	"github.com/daytonaio/daytona/pkg/ssh"
 )
 
-func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
+func (p DockerProvider) CreateTarget(targetReq *provider.TargetRequest) (*provider_util.Empty, error) {
 	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		wsLogWriter := loggerFactory.CreateWorkspaceLogger(workspaceReq.Workspace.Id, logs.LogSourceProvider)
-		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, wsLogWriter)
-		defer wsLogWriter.Close()
+	if p.TargetLogsDir != nil {
+		loggerFactory := logs.NewLoggerFactory(logs.LoggerFactoryConfig{
+			LogsDir:     *p.TargetLogsDir,
+			ApiUrl:      p.ApiUrl,
+			ApiKey:      p.ApiKey,
+			ApiBasePath: &logs.ApiBasePathTarget,
+		})
+		targetLogWriter, err := loggerFactory.CreateLogger(targetReq.Target.Id, targetReq.Target.Name, logs.LogSourceProvider)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, targetLogWriter)
+		defer targetLogWriter.Close()
 	}
 
-	dockerClient, err := p.getClient(workspaceReq.TargetOptions)
+	dockerClient, err := p.getClient(targetReq.Target.TargetConfig.Options)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	targetDir, err := p.getTargetDir(targetReq)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	sshClient, err := p.getSshClient(targetReq.Target.TargetConfig.Options)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+	if sshClient != nil {
+		defer sshClient.Close()
+	}
+
+	return new(provider_util.Empty), dockerClient.CreateTarget(targetReq.Target, targetDir, logWriter, sshClient)
+}
+
+func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
+	if p.DaytonaDownloadUrl == nil {
+		return new(provider_util.Empty), errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
+	}
+
+	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
+	if p.WorkspaceLogsDir != nil {
+		loggerFactory := logs.NewLoggerFactory(logs.LoggerFactoryConfig{
+			LogsDir:     *p.WorkspaceLogsDir,
+			ApiUrl:      p.ApiUrl,
+			ApiKey:      p.ApiKey,
+			ApiBasePath: &logs.ApiBasePathWorkspace,
+		})
+		workspaceLogWriter, err := loggerFactory.CreateLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
+		defer workspaceLogWriter.Close()
+	}
+
+	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
@@ -32,68 +83,29 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		return new(provider_util.Empty), err
 	}
 
-	sshClient, err := p.getSshClient(workspaceReq.Workspace.Target, workspaceReq.TargetOptions)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-	if sshClient != nil {
-		defer sshClient.Close()
-	}
-
-	return new(provider_util.Empty), dockerClient.CreateWorkspace(workspaceReq.Workspace, workspaceDir, logWriter, sshClient)
-}
-
-func (p DockerProvider) CreateProject(projectReq *provider.ProjectRequest) (*provider_util.Empty, error) {
-	if p.DaytonaDownloadUrl == nil {
-		return new(provider_util.Empty), errors.New("ServerDownloadUrl not set. Did you forget to call Initialize?")
-	}
-
-	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
-	if p.LogsDir != nil {
-		loggerFactory := logs.NewLoggerFactory(p.LogsDir, nil)
-		projectLogWriter := loggerFactory.CreateProjectLogger(projectReq.Project.WorkspaceId, projectReq.Project.Name, logs.LogSourceProvider)
-		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, projectLogWriter)
-		defer projectLogWriter.Close()
-	}
-
-	dockerClient, err := p.getClient(projectReq.TargetOptions)
-	if err != nil {
-		return new(provider_util.Empty), err
-	}
-
-	projectDir, err := p.getProjectDir(projectReq)
+	_, isLocal, err := types.ParseTargetConfigOptions(workspaceReq.Workspace.Target.TargetConfig.Options)
 	if err != nil {
 		return new(provider_util.Empty), err
 	}
 
 	var sshClient *ssh.Client
-	if projectReq.Project.Target != "local" {
-		sshClient, err = p.getSshClient(projectReq.Project.Target, projectReq.TargetOptions)
+	if !isLocal {
+		sshClient, err = p.getSshClient(workspaceReq.Workspace.Target.TargetConfig.Options)
 		if err != nil {
 			return new(provider_util.Empty), err
 		}
-		defer sshClient.Close()
+		if sshClient != nil {
+			defer sshClient.Close()
+		}
 	}
-	// TODO: think about how to handle this since the project is cloned in dockerClient.CreateProject so we can't detect the builder type here
-	// else {
-	// 	builderType, err := detect.DetectProjectBuilderType(projectReq.Project.BuildConfig, projectDir, nil)
-	// 	if err != nil {
-	// 		return new(provider_util.Empty), err
-	// 	}
 
-	// 	if builderType != detect.BuilderTypeDevcontainer {
-	// 		p.setLocalEnvOverride(projectReq.Project)
-	// 	}
-	// }
-
-	return new(provider_util.Empty), dockerClient.CreateProject(&docker.CreateProjectOptions{
-		Project:                  projectReq.Project,
-		ProjectDir:               projectDir,
-		ContainerRegistry:        projectReq.ContainerRegistry,
-		BuilderImage:             projectReq.BuilderImage,
-		BuilderContainerRegistry: projectReq.BuilderContainerRegistry,
-		LogWriter:                logWriter,
-		Gpc:                      projectReq.GitProviderConfig,
-		SshClient:                sshClient,
+	return new(provider_util.Empty), dockerClient.CreateWorkspace(&docker.CreateWorkspaceOptions{
+		Workspace:           workspaceReq.Workspace,
+		WorkspaceDir:        workspaceDir,
+		ContainerRegistries: workspaceReq.ContainerRegistries,
+		BuilderImage:        workspaceReq.BuilderImage,
+		LogWriter:           logWriter,
+		Gpc:                 workspaceReq.GitProviderConfig,
+		SshClient:           sshClient,
 	})
 }

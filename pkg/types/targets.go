@@ -3,65 +3,65 @@ package types
 import (
 	"encoding/json"
 
-	"github.com/daytonaio/daytona/pkg/provider"
+	"github.com/daytonaio/daytona/pkg/models"
 )
 
-type TargetOptions struct {
+type TargetConfigOptions struct {
 	RemoteHostname   *string `json:"Remote Hostname,omitempty"`
 	RemotePort       *int    `json:"Remote Port,omitempty"`
 	RemoteUser       *string `json:"Remote User,omitempty"`
 	RemotePassword   *string `json:"Remote Password,omitempty"`
 	RemotePrivateKey *string `json:"Remote Private Key Path,omitempty"`
 	SockPath         *string `json:"Sock Path,omitempty"`
-	WorkspaceDataDir *string `json:"Workspace Data Dir,omitempty"`
+	TargetDataDir    *string `json:"Target Data Dir,omitempty"`
 }
 
-func GetTargetManifest() *provider.ProviderTargetManifest {
-	return &provider.ProviderTargetManifest{
-		"Remote Hostname": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeString,
+func GetTargetConfigManifest() *models.TargetConfigManifest {
+	return &models.TargetConfigManifest{
+		"Remote Hostname": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeString,
 			DisabledPredicate: "^local$",
 		},
-		"Remote Port": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeInt,
+		"Remote Port": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeInt,
 			DefaultValue:      "22",
 			DisabledPredicate: "^local$",
 		},
-		"Remote User": provider.ProviderTargetProperty{
-			Type: provider.ProviderTargetPropertyTypeString,
+		"Remote User": models.TargetConfigProperty{
+			Type: models.TargetConfigPropertyTypeString,
 			// TODO: Add docs entry
 			Description:       "Note: non-root user required",
 			DisabledPredicate: "^local$",
 		},
-		"Remote Password": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeString,
+		"Remote Password": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeString,
 			DisabledPredicate: "^local$",
 			InputMasked:       true,
 		},
-		"Remote Private Key Path": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeFilePath,
+		"Remote Private Key Path": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeFilePath,
 			DefaultValue:      "~/.ssh",
 			DisabledPredicate: "^local$",
 		},
-		"Sock Path": provider.ProviderTargetProperty{
-			Type:         provider.ProviderTargetPropertyTypeString,
+		"Sock Path": models.TargetConfigProperty{
+			Type:         models.TargetConfigPropertyTypeString,
 			DefaultValue: "/var/run/docker.sock",
 		},
-		"Workspace Data Dir": provider.ProviderTargetProperty{
-			Type:              provider.ProviderTargetPropertyTypeString,
+		"Target Data Dir": models.TargetConfigProperty{
+			Type:              models.TargetConfigPropertyTypeString,
 			DefaultValue:      "/tmp/daytona-data",
-			Description:       "The directory on the remote host where the workspace data will be stored",
+			Description:       "The directory on the remote host where the target data will be stored",
 			DisabledPredicate: "^local$",
 		},
 	}
 }
 
-func ParseTargetOptions(optionsJson string) (*TargetOptions, error) {
-	var targetOptions TargetOptions
-	err := json.Unmarshal([]byte(optionsJson), &targetOptions)
+func ParseTargetConfigOptions(optionsJson string) (opts *TargetConfigOptions, isLocal bool, err error) {
+	var targetOptions TargetConfigOptions
+	err = json.Unmarshal([]byte(optionsJson), &targetOptions)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return &targetOptions, nil
+	return &targetOptions, targetOptions.RemoteHostname == nil, nil
 }
