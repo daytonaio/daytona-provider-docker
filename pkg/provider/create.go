@@ -109,3 +109,39 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		SshClient:           sshClient,
 	})
 }
+
+func (p DockerProvider) ResizeWorkspace(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
+	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
+	if p.WorkspaceLogsDir != nil {
+		loggerFactory := logs.NewLoggerFactory(logs.LoggerFactoryConfig{
+			LogsDir:     *p.WorkspaceLogsDir,
+			ApiUrl:      p.ApiUrl,
+			ApiKey:      p.ApiKey,
+			ApiBasePath: &logs.ApiBasePathWorkspace,
+		})
+		workspaceLogWriter, err := loggerFactory.CreateLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
+		defer workspaceLogWriter.Close()
+	}
+
+	workspaceDir, err := p.getWorkspaceDir(workspaceReq)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	return new(provider_util.Empty), dockerClient.ResizeWorkspace(&docker.CreateWorkspaceOptions{
+		Workspace:           workspaceReq.Workspace,
+		WorkspaceDir:        workspaceDir,
+		ContainerRegistries: workspaceReq.ContainerRegistries,
+		BuilderImage:        workspaceReq.BuilderImage,
+		LogWriter:           logWriter,
+	})
+}
