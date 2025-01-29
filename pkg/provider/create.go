@@ -107,6 +107,7 @@ func (p DockerProvider) CreateWorkspace(workspaceReq *provider.WorkspaceRequest)
 		LogWriter:           logWriter,
 		Gpc:                 workspaceReq.GitProviderConfig,
 		SshClient:           sshClient,
+		SshKeyPair:          workspaceReq.SshKeyPair,
 	})
 }
 
@@ -143,5 +144,6 @@ func (p DockerProvider) ResizeWorkspace(workspaceReq *provider.WorkspaceRequest)
 		ContainerRegistries: workspaceReq.ContainerRegistries,
 		BuilderImage:        workspaceReq.BuilderImage,
 		LogWriter:           logWriter,
+		SshKeyPair:          workspaceReq.SshKeyPair,
 	})
 }

@@ -210,6 +210,7 @@ func (p DockerProvider) StartWorkspace(workspaceReq *provider.WorkspaceRequest) 
 		Gpc:                 workspaceReq.GitProviderConfig,
 		SshClient:           sshClient,
 		BuilderImage:        workspaceReq.BuilderImage,
+		SshKeyPair:          workspaceReq.SshKeyPair,
 	}, downloadUrl)
 	if err != nil {
 		return new(provider_util.Empty), err
