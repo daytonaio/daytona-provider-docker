@@ -145,3 +145,39 @@ func (p DockerProvider) ResizeWorkspace(workspaceReq *provider.WorkspaceRequest)
 		LogWriter:           logWriter,
 	})
 }
+
+func (p DockerProvider) CreateSnapshot(workspaceReq *provider.WorkspaceRequest) (*provider_util.Empty, error) {
+	var snapshotImage string
+	if workspaceReq.SnapshotImage == nil {
+		return new(provider_util.Empty), errors.New("SnapshotImage is required")
+	}
+	snapshotImage = *workspaceReq.SnapshotImage
+
+	dockerClient, err := p.getClient(workspaceReq.Workspace.Target.TargetConfig.Options)
+	if err != nil {
+		return new(provider_util.Empty), err
+	}
+
+	logWriter := io.MultiWriter(&log_writers.InfoLogWriter{})
+	if p.WorkspaceLogsDir != nil {
+		loggerFactory := logs.NewLoggerFactory(logs.LoggerFactoryConfig{
+			LogsDir:     *p.WorkspaceLogsDir,
+			ApiUrl:      p.ApiUrl,
+			ApiKey:      p.ApiKey,
+			ApiBasePath: &logs.ApiBasePathWorkspace,
+		})
+		workspaceLogWriter, err := loggerFactory.CreateLogger(workspaceReq.Workspace.Id, workspaceReq.Workspace.Name, logs.LogSourceProvider)
+		if err != nil {
+			return new(provider_util.Empty), err
+		}
+		logWriter = io.MultiWriter(&log_writers.InfoLogWriter{}, workspaceLogWriter)
+		defer workspaceLogWriter.Close()
+	}
+
+	return new(provider_util.Empty), dockerClient.CreateSnapshot(
+		workspaceReq.Workspace,
+		snapshotImage,
+		workspaceReq.ContainerRegistries.FindContainerRegistryByImageName(snapshotImage),
+		logWriter,
+	)
+}
