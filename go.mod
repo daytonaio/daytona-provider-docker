@@ -1,8 +1,6 @@
 module github.com/daytonaio/daytona-provider-docker
 
-go 1.23.0
-
-toolchain go1.23.1
+go 1.25.0
 
 // samber/lo v1.47.0 - required by headscale breaks frp
 replace github.com/samber/lo => github.com/samber/lo v1.39.0
@@ -13,9 +11,9 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.6.0
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/crypto v0.31.0
-	golang.org/x/sync v0.10.0
-	golang.org/x/term v0.27.0
+	golang.org/x/crypto v0.52.0
+	golang.org/x/sync v0.20.0
+	golang.org/x/term v0.43.0
 )
 
 require (
@@ -136,10 +134,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.26.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.2.0 // indirect
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.66.0 // indirect
