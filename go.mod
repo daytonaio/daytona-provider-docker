@@ -53,7 +53,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.2.3 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
 	github.com/charmbracelet/x/term v0.2.0 // indirect
-	github.com/cloudflare/circl v1.3.7 // indirect
+	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/compose-spec/compose-go/v2 v2.4.1 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
